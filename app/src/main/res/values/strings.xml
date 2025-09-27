@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="login_email_hint">Email</string>
+    <string name="login_password_hint">Lozinka</string>
+    <string name="login_button">Prijava</string>
+    <string name="login_register_cta">Nemaš nalog? Registruj se</string>
+
+    <!-- Register -->
+    <string name="reg_email_hint">Email</string>
+    <string name="reg_username_hint">Korisničko ime</string>
+    <string name="reg_password_hint">Lozinka</string>
+    <string name="reg_password2_hint">Ponovi lozinku</string>
+    <string name="reg_avatar_label">Avatar</string>
+    <string name="reg_button">Registruj se</string>
+
+    <!-- Verify -->
+    <string name="verify_info_prefix">Na</string>
+    <string name="verify_info_suffix">je poslat link za aktivaciju. Link važi 24h.</string>
+    <string name="verify_resend">Pošalji ponovo</string>
 </resources>
