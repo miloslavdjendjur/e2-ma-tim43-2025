@@ -26,7 +26,6 @@ public class UserRepository {
         return db.collection("users").document(uid).update("createdAt", FieldValue.serverTimestamp());
     }
 
-    // Atomarno: rezerviši 'usernames/{username}' + kreiraj 'users/{uid}' sa SVIМ poljima iz tvog modela
     public Task<Void> reserveUsernameAndCreateUser(User u) {
         String uid = u.uid;
         String username = u.username;
@@ -41,12 +40,10 @@ public class UserRepository {
                         FirebaseFirestoreException.Code.ALREADY_EXISTS);
             }
 
-            // 1) rezervacija username-a
             Map<String,Object> unameDoc = new HashMap<>();
             unameDoc.put("uid", uid);
             tr.set(unameRef, unameDoc);
 
-            // 2) users/{uid} – kompletnо prema tvom modelu
             Map<String,Object> userDoc = new HashMap<>();
             userDoc.put("uid", u.uid);
             userDoc.put("email", u.email);

@@ -56,7 +56,6 @@ public class RegisterActivity extends AppCompatActivity {
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { toast("Email nije ispravan"); return; }
         if (!pass.equals(pass2)) { toast("Lozinke se ne poklapaju"); return; }
 
-        // 1) Kreiraj Auth user
         authRepo.register(email, pass).addOnSuccessListener(authResult -> {
             FirebaseUser fbUser = authResult.getUser();
             if (fbUser == null) { toast("Greška pri registraciji"); return; }
@@ -65,27 +64,25 @@ public class RegisterActivity extends AppCompatActivity {
             int avatarIndex = spAvatar.getSelectedItemPosition();
             User u = new User(uid, email, username, avatarIndex);
 
-            // 2) Rezervacija username-a + kreiranje users/{uid}
             userRepo.reserveUsernameAndCreateUser(u).addOnSuccessListener(v -> {
 
-                // 3) Default verifikacioni mejl (bez ActionCodeSettings)
                 fbUser.sendEmailVerification()
                         .addOnSuccessListener(x -> {
                             toast("Verifikacioni email poslat.");
-                            // ostavi korisnika ulogovanog da bi 'Resend' radio iz Verify ekrana
+
                             startActivity(new Intent(this, VerifyMailActivity.class).putExtra("email", email));
                             finish();
                         })
                         .addOnFailureListener(e -> toast("Slanje verifikacionog emaila nije uspelo: " + e.getMessage()));
 
             }).addOnFailureListener(e -> {
-                // username je zauzet ili neka druga greška – počisti sveže kreiran Auth nalog
+
                 toast(e.getMessage() != null && e.getMessage().contains("Username already") ?
                         "Korisničko ime je zauzeto. Izaberi drugo." :
                         "Greška pri čuvanju profila: " + e.getMessage());
 
                 FirebaseUser cur = authRepo.current();
-                if (cur != null) cur.delete(); // da može ponovna registracija
+                if (cur != null) cur.delete();
             });
 
         }).addOnFailureListener(e -> toast("Registracija nije uspela: " + e.getMessage()));

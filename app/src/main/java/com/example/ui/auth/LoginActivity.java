@@ -73,9 +73,7 @@ public class LoginActivity extends AppCompatActivity {
         long maxAgeMs = 24L * 60L * 60L * 1000L; // 24h
 
         if (ageMs > maxAgeMs) {
-            // Striktna varijanta: ne dopuštamo aktivaciju posle 24h
             toast("Link je istekao (24h). Registruj se ponovo.");
-            // (po želji: ovde možeš i da cur.delete() + releaseUsername(...) da očistiš nalog)
             return;
         }
 
