@@ -63,4 +63,17 @@ public class UserRepository {
             return null;
         });
     }
+
+    public Task<DocumentSnapshot> getCurrentUser() {
+        String uid = getCurrentUid();
+        if (uid == null) throw new IllegalStateException("Not logged in");
+        return db.collection("users").document(uid).get();
+    }
+
+    private String getCurrentUid() {
+        return com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
+                ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+    }
+
 }

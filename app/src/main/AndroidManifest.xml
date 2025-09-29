@@ -26,6 +26,10 @@
         <activity android:name="com.example.ui.auth.LoginActivity" />
         <activity android:name="com.example.ui.auth.RegisterActivity" />
         <activity android:name="com.example.ui.auth.VerifyMailActivity" />
+        <activity android:name="com.example.ui.profile.ProfileActivity" android:exported="true"/>
+        <activity android:name="com.example.ui.profile.ChangePasswordActivity" android:exported="true"/>
+
+
 
     </application>
 

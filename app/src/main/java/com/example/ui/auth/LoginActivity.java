@@ -72,12 +72,13 @@ public class LoginActivity extends AppCompatActivity {
         long ageMs = (createdAt != null) ? now - createdAt.toDate().getTime() : 0L;
         long maxAgeMs = 24L * 60L * 60L * 1000L; // 24h
 
-        if (ageMs > maxAgeMs) {
+        Boolean active = ds.getBoolean("active");
+        if (ageMs > maxAgeMs && !active) {
             toast("Link je istekao (24h). Registruj se ponovo.");
             return;
         }
 
-        Boolean active = ds.getBoolean("active");
+        //Boolean active = ds.getBoolean("active");
         if (active == null || !active) {
             userRepo.setActive(u.getUid())
                     .addOnSuccessListener(v -> proceedToMain(u.getUid()))

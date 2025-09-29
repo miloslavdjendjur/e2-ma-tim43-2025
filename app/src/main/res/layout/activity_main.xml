@@ -8,6 +8,17 @@
     android:orientation="vertical">
 
     <Button
+        android:id="@+id/btnProfile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:text="Profil" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="12dp" />
+
+    <Button
         android:id="@+id/btnLogout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

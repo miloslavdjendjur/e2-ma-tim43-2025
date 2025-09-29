@@ -36,6 +36,10 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
             finish();
         });
+        Button btnProfile = findViewById(R.id.btnProfile);
+        btnProfile.setOnClickListener(v ->
+                startActivity(new Intent(this, com.example.ui.profile.ProfileActivity.class)));
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
