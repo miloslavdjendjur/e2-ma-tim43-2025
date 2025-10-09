@@ -29,6 +29,8 @@
         <activity android:name="com.example.ui.profile.ProfileActivity" android:exported="true"/>
         <activity android:name="com.example.ui.profile.ChangePasswordActivity" android:exported="true"/>
         <activity android:name="com.example.ui.level.LevelProgressActivity" />
+        <activity android:name="com.example.ui.equipment.EquipmentStoreActivity" />
+        <activity android:name="com.example.ui.equipment.MyEquipmentActivity" />
 
 
 
