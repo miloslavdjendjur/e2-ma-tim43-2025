@@ -17,4 +17,6 @@
     <string name="verify_info_prefix">Na</string>
     <string name="verify_info_suffix">je poslat link za aktivaciju. Link važi 24h.</string>
     <string name="verify_resend">Pošalji ponovo</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

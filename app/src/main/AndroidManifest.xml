@@ -13,23 +13,23 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
+
+        <!-- LAUNCHER: LoginActivity je početni ekran -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.ui.auth.LoginActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <activity android:name="com.example.ui.auth.LoginActivity" />
+        <!-- Ostali ekrani (bez intent-filtera ne moraju exported) -->
+        <activity android:name="com.example.myapplication.MainActivity" />
         <activity android:name="com.example.ui.auth.RegisterActivity" />
         <activity android:name="com.example.ui.auth.VerifyMailActivity" />
-        <activity android:name="com.example.ui.profile.ProfileActivity" android:exported="true"/>
-        <activity android:name="com.example.ui.profile.ChangePasswordActivity" android:exported="true"/>
-
-
+        <activity android:name="com.example.ui.profile.ProfileActivity" />
+        <activity android:name="com.example.ui.profile.ChangePasswordActivity" />
 
     </application>
 
