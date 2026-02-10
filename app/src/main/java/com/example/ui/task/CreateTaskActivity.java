@@ -1,5 +1,7 @@
 package com.example.ui.task;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
@@ -8,7 +10,9 @@ import com.example.myapplication.R;
 import com.example.data.model.Category;
 import com.example.data.model.Task;
 import com.example.data.repo.CategoryRepository;
+import com.example.data.repo.TaskRepository;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class CreateTaskActivity extends AppCompatActivity {
@@ -18,10 +22,15 @@ public class CreateTaskActivity extends AppCompatActivity {
     private RadioGroup rgDifficulty, rgImportance;
     private androidx.appcompat.widget.SwitchCompat switchRecurring;
     private LinearLayout layoutRecurring;
-    private CategoryRepository categoryRepo = new CategoryRepository();
-    private List<Category> loadedCategories = new ArrayList<>();
+    private TextView tvSelectedDate;
+    private Button btnPickDate;
+    private TextView tvSelectedTime;
+    private Button btnPickTime;
 
-    private com.example.data.repo.TaskRepository taskRepo = new com.example.data.repo.TaskRepository();
+    private CategoryRepository categoryRepo = new CategoryRepository();
+    private TaskRepository taskRepo = new TaskRepository();
+    private List<Category> loadedCategories = new ArrayList<>();
+    private Calendar selectedDate = Calendar.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +40,9 @@ public class CreateTaskActivity extends AppCompatActivity {
         initViews();
         loadCategories();
 
-        // Logika za prikazivanje opcija ponavljanja
+        btnPickDate.setOnClickListener(v -> showDatePicker());
+        btnPickTime.setOnClickListener(v -> showTimePicker());
+
         switchRecurring.setOnCheckedChangeListener((buttonView, isChecked) -> {
             layoutRecurring.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
@@ -49,6 +60,38 @@ public class CreateTaskActivity extends AppCompatActivity {
         rgImportance = findViewById(R.id.rgImportance);
         switchRecurring = findViewById(R.id.switchRecurring);
         layoutRecurring = findViewById(R.id.layoutRecurringOptions);
+        tvSelectedDate = findViewById(R.id.tvSelectedDate);
+        btnPickDate = findViewById(R.id.btnPickDate);
+        tvSelectedTime = findViewById(R.id.tvSelectedTime);
+        btnPickTime = findViewById(R.id.btnPickTime);
+    }
+
+    private void showDatePicker() {
+        new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+            selectedDate.set(year, month, dayOfMonth, 0, 0, 0);
+            selectedDate.set(Calendar.MILLISECOND, 0);
+            tvSelectedDate.setText("Datum: " + dayOfMonth + "." + (month + 1) + "." + year + ".");
+        }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH)).show();
+    }
+
+    private void showTimePicker() {
+        if (tvSelectedTime == null || selectedDate == null) return;
+
+        TimePickerDialog timePickerDialog = new TimePickerDialog(CreateTaskActivity.this,
+                (view, hourOfDay, minute) -> {
+                    selectedDate.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    selectedDate.set(Calendar.MINUTE, minute);
+                    selectedDate.set(Calendar.SECOND, 0);
+                    selectedDate.set(Calendar.MILLISECOND, 0);
+
+                    String timeText = String.format("Vreme: %02d:%02d", hourOfDay, minute);
+                    tvSelectedTime.setText(timeText);
+                },
+                selectedDate.get(Calendar.HOUR_OF_DAY),
+                selectedDate.get(Calendar.MINUTE),
+                true
+        );
+        timePickerDialog.show();
     }
 
     private void loadCategories() {
@@ -56,9 +99,7 @@ public class CreateTaskActivity extends AppCompatActivity {
             loadedCategories = categories;
             List<String> names = new ArrayList<>();
             for (Category c : categories) names.add(c.getName());
-
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                    android.R.layout.simple_spinner_item, names);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, names);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinnerCategory.setAdapter(adapter);
         });
@@ -66,54 +107,37 @@ public class CreateTaskActivity extends AppCompatActivity {
 
     private void saveTask() {
         String name = etName.getText().toString().trim();
-        String description = etDesc.getText().toString().trim();
-
-        // Validacija po specifikaciji
         if (name.isEmpty()) {
             etName.setError("Naziv je obavezan");
             return;
         }
 
-        if (spinnerCategory.getSelectedItem() == null) {
-            Toast.makeText(this, "Morate izabrati kategoriju", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Dobavljanje izabrane kategorije
-        Category selectedCategory = loadedCategories.get(spinnerCategory.getSelectedItemPosition());
-
-        // Kreiranje Task objekta
         Task newTask = new Task();
         newTask.setName(name);
-        newTask.setDescription(description);
-        newTask.setCategoryId(selectedCategory.getId());
+        newTask.setDescription(etDesc.getText().toString().trim());
+        newTask.setCategoryId(loadedCategories.get(spinnerCategory.getSelectedItemPosition()).getId());
         newTask.setDifficultyXp(getDifficultyXp());
         newTask.setImportanceXp(getImportanceXp());
+        newTask.setExecutionTime(new com.google.firebase.Timestamp(selectedDate.getTime()));
+        newTask.setStatus("aktivan");
 
-        // Logika za ponavljanje
         if (switchRecurring.isChecked()) {
             newTask.setType("RECURRING");
-            String intervalStr = etInterval.getText().toString();
-            newTask.setInterval(intervalStr.isEmpty() ? 1 : Integer.parseInt(intervalStr));
-            newTask.setUnit(spinnerUnit.getSelectedItem().toString().toLowerCase());
+            newTask.setInterval(Integer.parseInt(etInterval.getText().toString()));
+            newTask.setUnit(spinnerUnit.getSelectedItem().toString());
         } else {
             newTask.setType("SINGLE");
         }
 
-        // Po specifikaciji: Vreme izvrsenja (trenutno postavljamo na sada)
-        newTask.setExecutionTime(com.google.firebase.Timestamp.now());
-
-        // Repository does its sheit
-        taskRepo.addTask(newTask, new com.example.data.repo.TaskRepository.OnTaskActionEventListener() {
+        taskRepo.addTask(newTask, new TaskRepository.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(CreateTaskActivity.this, message, Toast.LENGTH_SHORT).show();
-                finish(); // Zatvaramo ekran nakon uspešnog čuvanja
+                finish();
             }
-
             @Override
             public void onError(String error) {
-                Toast.makeText(CreateTaskActivity.this, "Greška: " + error, Toast.LENGTH_LONG).show();
+                Toast.makeText(CreateTaskActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
     }

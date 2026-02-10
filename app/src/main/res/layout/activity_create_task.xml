@@ -2,78 +2,132 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Kreiranje novog zadatka"
-            android:textSize="24sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="20dp" />
 
         <EditText
             android:id="@+id/etTaskName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Naziv zadatka"
-            android:inputType="text" />
+            android:inputType="textCapSentences" />
 
         <EditText
             android:id="@+id/etTaskDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Opis (opciono)"
-            android:inputType="textMultiLine" />
+            android:inputType="textMultiLine"
+            android:layout_marginTop="8dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Kategorija:"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="16dp"
+            android:textStyle="bold" />
 
         <Spinner
             android:id="@+id/spinnerCategory"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="48dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Težina (XP):"
-            android:layout_marginTop="16dp" />
+            android:text="Težina:"
+            android:layout_marginTop="16dp"
+            android:textStyle="bold" />
 
         <RadioGroup
             android:id="@+id/rgDifficulty"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <RadioButton android:id="@+id/rbVeryEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Veoma lak (1 XP)" />
-            <RadioButton android:id="@+id/rbEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lak (3 XP)" />
-            <RadioButton android:id="@+id/rbHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Težak (7 XP)" />
-            <RadioButton android:id="@+id/rbExtremelyHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ekstremno težak (20 XP)" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton android:id="@+id/rbVeryEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Jako Lako" />
+            <RadioButton android:id="@+id/rbEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lak" />
+            <RadioButton android:id="@+id/rbHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Težak" />
+            <RadioButton android:id="@+id/rbExtremelyHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Baš Težak" />
         </RadioGroup>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bitnost (XP):"
-            android:layout_marginTop="16dp" />
+            android:text="Bitnost:"
+            android:layout_marginTop="16dp"
+            android:textStyle="bold" />
 
         <RadioGroup
             android:id="@+id/rgImportance"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <RadioButton android:id="@+id/rbNormal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Normalan (1 XP)" />
-            <RadioButton android:id="@+id/rbImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Važan (3 XP)" />
-            <RadioButton android:id="@+id/rbExtremelyImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ekstremno važan (10 XP)" />
-            <RadioButton android:id="@+id/rbSpecial" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Specijalan (100 XP)" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+            <RadioButton android:id="@+id/rbNormal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Norm." />
+            <RadioButton android:id="@+id/rbImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Važan" />
+            <RadioButton android:id="@+id/rbExtremelyImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="E.Važan" />
+            <RadioButton android:id="@+id/rbSpecial" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Spec." />
         </RadioGroup>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginTop="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/tvSelectedDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Datum nije izabran" />
+                <TextView
+                    android:id="@+id/tvSelectedTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vreme nije izabrano"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnPickDate"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Datum" />
+
+            <Button
+                android:id="@+id/btnPickTime"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vreme" />
+        </LinearLayout>
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchRecurring"
@@ -93,13 +147,13 @@
                 android:id="@+id/etInterval"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Interval (npr. 2)"
+                android:hint="Svakih (npr. 2)"
                 android:inputType="number" />
 
             <Spinner
                 android:id="@+id/spinnerUnit"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:entries="@array/recurring_units" />
         </LinearLayout>
 
@@ -107,8 +161,9 @@
             android:id="@+id/btnSaveTask"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Sačuvaj zadatak"
-            android:layout_marginTop="24dp" />
+            android:text="SAČUVAJ ZADATAK"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp" />
 
     </LinearLayout>
 </ScrollView>

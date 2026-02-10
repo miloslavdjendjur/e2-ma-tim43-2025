@@ -55,5 +55,14 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, com.example.ui.task.CreateTaskActivity.class);
             startActivity(intent);
         });
+
+        // Pronađi dugme po ID-u (proveri da li si ga dodao u activity_main.xml)
+        Button btnViewTasks = findViewById(R.id.btnViewTasks);
+
+        btnViewTasks.setOnClickListener(v -> {
+            // Otvaranje ekrana za pregled zadataka
+            Intent intent = new Intent(MainActivity.this, com.example.ui.task.TasksActivity.class);
+            startActivity(intent);
+        });
     }
 }
