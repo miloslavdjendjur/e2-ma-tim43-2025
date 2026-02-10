@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="vertical" android:padding="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <Button android:id="@+id/btnUseP20"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Aktiviraj napitak +20% (ONE-SHOT)"/>
+
+        <Button android:id="@+id/btnUseP40"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Aktiviraj napitak +40% (ONE-SHOT)"/>
+
+        <View android:layout_width="match_parent"
+            android:layout_height="8dp"/>
+
+        <Button android:id="@+id/btnEquipGloves"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Obuci rukavice (+10% PP, 2 borbe)"/>
+
+        <Button android:id="@+id/btnEquipShield"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Obuci štit (+10% hit, 2 borbe)"/>
+
+        <Button android:id="@+id/btnEquipBoots"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Obuj čizme (+40% extra, 2 borbe)"/>
+
+        <View android:layout_width="match_parent"
+            android:layout_height="8dp"/>
+
+        <Button android:id="@+id/btnStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Prikaži efektivne statove"/>
+
+        <Button android:id="@+id/btnAfterBattle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Simuliraj: posle borbe (troši opremu)"/>
+    </LinearLayout>
+</ScrollView>
