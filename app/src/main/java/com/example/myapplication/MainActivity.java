@@ -49,5 +49,11 @@ public class MainActivity extends AppCompatActivity {
         Button btnCategories = findViewById(R.id.btnCategories);
         btnCategories.setOnClickListener(v ->
                 startActivity(new Intent(this, com.example.ui.category.CategoryActivity.class)));
+
+        Button btnCreateTask = findViewById(R.id.btnCreateTask);
+        btnCreateTask.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, com.example.ui.task.CreateTaskActivity.class);
+            startActivity(intent);
+        });
     }
 }
