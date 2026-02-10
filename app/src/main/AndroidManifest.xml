@@ -28,8 +28,7 @@
         <activity android:name="com.example.ui.auth.VerifyMailActivity" />
         <activity android:name="com.example.ui.profile.ProfileActivity" android:exported="true"/>
         <activity android:name="com.example.ui.profile.ChangePasswordActivity" android:exported="true"/>
-
-
+        <activity android:name="com.example.ui.category.CategoryActivity" />
 
     </application>
 

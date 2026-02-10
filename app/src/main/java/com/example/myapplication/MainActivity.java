@@ -45,5 +45,9 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        Button btnCategories = findViewById(R.id.btnCategories);
+        btnCategories.setOnClickListener(v ->
+                startActivity(new Intent(this, com.example.ui.category.CategoryActivity.class)));
     }
 }

@@ -24,4 +24,11 @@
         android:layout_height="wrap_content"
         android:minHeight="48dp"
         android:text="Odjavi se" />
+
+    <Button
+        android:id="@+id/btnCategories"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Upravljanje kategorijama"
+        android:layout_marginTop="16dp" />
 </LinearLayout>
