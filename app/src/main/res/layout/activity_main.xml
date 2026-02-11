@@ -38,5 +38,30 @@
         android:layout_height="wrap_content"
         android:minHeight="48dp"
         android:text="Napredovanje" />
+        android:text="Categories"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/btnViewTasks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Calendar"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/btnAllTasks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="All Tasks"
+        android:layout_marginTop="8dp" />/>
+
+    <Button
+        android:id="@+id/btnCreateTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create a New Task"
+        android:layout_marginTop="8dp" />
+
+
 
 </LinearLayout>

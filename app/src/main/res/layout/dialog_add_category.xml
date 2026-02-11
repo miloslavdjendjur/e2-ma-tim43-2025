@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Nova kategorija"
+        android:text="New Category"
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -17,12 +17,12 @@
         android:id="@+id/etCategoryName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Naziv (npr. Zdravlje, Škola)" />
+        android:hint="Name (e.g. Health, School)" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Unesite HEX boju (npr. #FF5733):"
+        android:text="Enter HEX color (e.g. #FF5733):"
         android:layout_marginTop="16dp" />
 
     <EditText

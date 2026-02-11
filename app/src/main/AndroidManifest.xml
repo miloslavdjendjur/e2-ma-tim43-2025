@@ -32,9 +32,10 @@
         <activity android:name="com.example.ui.level.LevelProgressActivity" />
         <activity android:name="com.example.ui.equipment.EquipmentStoreActivity" />
         <activity android:name="com.example.ui.equipment.MyEquipmentActivity" />
-
-
-
+        <activity android:name="com.example.ui.task.CreateTaskActivity" />
+        <activity android:name="com.example.ui.task.TasksActivity" />
+        <activity android:name="com.example.ui.task.TaskDetailActivity" />
+        <activity android:name="com.example.ui.task.AllTasksActivity" />
     </application>
 
 </manifest>

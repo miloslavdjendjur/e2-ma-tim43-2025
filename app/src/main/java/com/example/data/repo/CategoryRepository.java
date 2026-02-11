@@ -10,7 +10,6 @@ public class CategoryRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final CollectionReference categoriesRef = db.collection("categories");
 
-    // Dobavljanje svih kategorija
     public void getAllCategories(OnCategoriesLoadedListener listener) {
         categoriesRef.get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -20,7 +19,6 @@ public class CategoryRepository {
         });
     }
 
-    // Dodavanje nove kategorije uz proveru boje
     public void addCategory(Category category, OnCategoryActionEventListener listener) {
         categoriesRef.whereEqualTo("colorHex", category.getColorHex()).get()
                 .addOnCompleteListener(task -> {
@@ -37,15 +35,12 @@ public class CategoryRepository {
                             listener.onError("Ova boja je već zauzeta!");
                         }
                     } else {
-                        // Ovo će nam ispisati ako su Rules problem ili ako kolekcija ne postoji
                         listener.onError("Greška u bazi: " + task.getException().getMessage());
                     }
                 });
     }
 
-    // Brisanje kategorije
     public void deleteCategory(String categoryId, OnCategoryActionEventListener listener) {
-        // NAPOMENA: Ovde ćemo kasnije dodati proveru da li postoji aktivan zadatak [cite: 128]
         categoriesRef.document(categoryId).delete()
                 .addOnSuccessListener(aVoid -> listener.onSuccess("Kategorija obrisana."))
                 .addOnFailureListener(e -> listener.onError("Greška pri brisanju."));

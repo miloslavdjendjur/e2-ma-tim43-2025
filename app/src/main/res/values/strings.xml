@@ -17,4 +17,9 @@
     <string name="verify_info_prefix">Na</string>
     <string name="verify_info_suffix">je poslat link za aktivaciju. Link važi 24h.</string>
     <string name="verify_resend">Pošalji ponovo</string>
+
+    <string-array name="recurring_units">
+        <item>Dan</item>
+        <item>Nedelja</item>
+    </string-array>
 </resources>

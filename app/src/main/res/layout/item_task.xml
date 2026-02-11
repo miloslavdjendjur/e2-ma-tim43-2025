@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="12dp">
+
+    <View
+        android:id="@+id/viewCategoryColorStrip"
+        android:layout_width="6dp"
+        android:layout_height="0dp"
+        android:background="#888888"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvTaskTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Task title"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/cbDone"
+        app:layout_constraintStart_toEndOf="@+id/viewCategoryColorStrip"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginStart="10dp" />
+
+    <TextView
+        android:id="@+id/tvTaskTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="--:--"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="@+id/tvTaskTitle"
+        app:layout_constraintTop_toBottomOf="@+id/tvTaskTitle"
+        app:layout_constraintEnd_toStartOf="@+id/cbDone"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/tvTaskStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="active"
+        android:textSize="13sp"
+        app:layout_constraintStart_toStartOf="@+id/tvTaskTitle"
+        app:layout_constraintTop_toBottomOf="@+id/tvTaskTime"
+        app:layout_constraintEnd_toStartOf="@+id/cbDone"
+        android:layout_marginTop="4dp" />
+
+    <CheckBox
+        android:id="@+id/cbDone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Done"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
