@@ -6,32 +6,45 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.myapplication.R;
 import com.example.data.model.Task;
 import com.example.data.model.Category;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
+
     private List<Task> tasks = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
-    private OnTaskStatusChangeListener listener;
+
+    private final OnTaskStatusChangeListener statusListener;
+    private final OnTaskActionsListener actionsListener;
 
     public interface OnTaskStatusChangeListener {
         void onStatusChange(Task task, boolean isDone);
     }
 
-    public TaskAdapter(OnTaskStatusChangeListener listener) {
-        this.listener = listener;
+    public interface OnTaskActionsListener {
+        void onEdit(Task task);
+        void onDelete(Task task);
+    }
+
+    public TaskAdapter(OnTaskStatusChangeListener statusListener, OnTaskActionsListener actionsListener) {
+        this.statusListener = statusListener;
+        this.actionsListener = actionsListener;
     }
 
     public void setData(List<Task> tasks, List<Category> categories) {
-        this.tasks = tasks;
-        this.categories = categories;
+        this.tasks = tasks != null ? tasks : new ArrayList<>();
+        this.categories = categories != null ? categories : new ArrayList<>();
         notifyDataSetChanged();
     }
 
@@ -45,10 +58,11 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     @Override
     public void onBindViewHolder(@NonNull TaskViewHolder holder, int position) {
         Task task = tasks.get(position);
-        holder.tvTitle.setText(task.getName());
-        holder.cbDone.setChecked(task.getStatus().equals("done"));
 
-        // Postavljanje dinamičkog vremena iz baze [cite: 178, 180, 226]
+        holder.tvTitle.setText(task.getName());
+        holder.cbDone.setChecked("done".equals(task.getStatus()));
+
+        // Vreme (SINGLE -> executionTime, RECURRING -> startDate)
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
         String formattedTime = "--:--";
 
@@ -59,7 +73,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         }
         holder.tvTime.setText(formattedTime);
 
-        // Postavljanje boje kategorije [cite: 173, 223]
+        // Boja kategorije
+        holder.viewColor.setBackgroundColor(Color.GRAY);
         for (Category c : categories) {
             if (c.getId() != null && c.getId().equals(task.getCategoryId())) {
                 try {
@@ -71,7 +86,43 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             }
         }
 
-        holder.cbDone.setOnClickListener(v -> listener.onStatusChange(task, holder.cbDone.isChecked()));
+        holder.cbDone.setOnClickListener(v -> {
+            if (statusListener != null) {
+                statusListener.onStatusChange(task, holder.cbDone.isChecked());
+            }
+        });
+
+        // Tap = Edit
+        holder.itemView.setOnClickListener(v -> {
+            if (actionsListener != null) actionsListener.onEdit(task);
+        });
+
+        // Long press = menu (Edit/Delete)
+        holder.itemView.setOnLongClickListener(v -> {
+            showPopupMenu(holder, task);
+            return true;
+        });
+    }
+
+    private void showPopupMenu(TaskViewHolder holder, Task task) {
+        if (actionsListener == null) return;
+
+        PopupMenu popup = new PopupMenu(holder.itemView.getContext(), holder.itemView);
+        popup.getMenu().add(0, 1, 0, "Edit");
+        popup.getMenu().add(0, 2, 1, "Delete");
+
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                actionsListener.onEdit(task);
+                return true;
+            } else if (item.getItemId() == 2) {
+                actionsListener.onDelete(task);
+                return true;
+            }
+            return false;
+        });
+
+        popup.show();
     }
 
     @Override
@@ -84,7 +135,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
-            // Povezivanje UI elemenata definisanih u item_task.xml [cite: 142, 180]
             viewColor = itemView.findViewById(R.id.viewCategoryColorStrip);
             tvTitle = itemView.findViewById(R.id.tvTaskTitle);
             tvTime = itemView.findViewById(R.id.tvTaskTime);

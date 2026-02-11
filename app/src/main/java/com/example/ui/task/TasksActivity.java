@@ -1,17 +1,21 @@
 package com.example.ui.task;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.CalendarView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.data.model.Category;
 import com.example.myapplication.R;
 import com.example.data.model.Task;
 import com.example.data.repo.CategoryRepository;
 import com.example.data.repo.TaskRepository;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -20,10 +24,13 @@ public class TasksActivity extends AppCompatActivity {
 
     private RecyclerView rvTasks;
     private TaskAdapter adapter;
+
     private final TaskRepository taskRepo = new TaskRepository();
     private final CategoryRepository catRepo = new CategoryRepository();
+
     private List<Task> allTasks = new ArrayList<>();
     private List<Category> allCategories = new ArrayList<>();
+
     private int selectedYear, selectedMonth, selectedDayOfMonth;
 
     @Override
@@ -35,10 +42,25 @@ public class TasksActivity extends AppCompatActivity {
         CalendarView calendarView = findViewById(R.id.calendarView);
 
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new TaskAdapter((task, isDone) -> {
-            String newStatus = isDone ? "done" : "active";
-            updateStatus(task, newStatus);
-        });
+
+        adapter = new TaskAdapter(
+                (task, isDone) -> {
+                    String newStatus = isDone ? "done" : "active";
+                    updateStatus(task, newStatus);
+                },
+                new TaskAdapter.OnTaskActionsListener() {
+                    @Override
+                    public void onEdit(Task task) {
+                        openEditTask(task);
+                    }
+
+                    @Override
+                    public void onDelete(Task task) {
+                        confirmDelete(task);
+                    }
+                }
+        );
+
         rvTasks.setAdapter(adapter);
 
         Calendar today = Calendar.getInstance();
@@ -74,12 +96,58 @@ public class TasksActivity extends AppCompatActivity {
     }
 
     private void updateStatus(Task task, String newStatus) {
+        if (task.getId() == null || task.getId().isEmpty()) {
+            Toast.makeText(this, "Task id missing - can't update status.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         taskRepo.updateTaskStatus(task.getId(), newStatus, new TaskRepository.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
                 loadData();
             }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void openEditTask(Task task) {
+        if (task.getId() == null || task.getId().isEmpty()) {
+            Toast.makeText(this, "Task id missing - can't edit.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent i = new Intent(this, CreateTaskActivity.class);
+        i.putExtra(CreateTaskActivity.EXTRA_TASK_ID, task.getId());
+        startActivity(i);
+    }
+
+    private void confirmDelete(Task task) {
+        if (task.getId() == null || task.getId().isEmpty()) {
+            Toast.makeText(this, "Task id missing - can't delete.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete task")
+                .setMessage("Are you sure you want to delete: \"" + task.getName() + "\"?")
+                .setPositiveButton("Delete", (dialog, which) -> deleteTask(task.getId()))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteTask(String taskId) {
+        taskRepo.deleteTask(taskId, new TaskRepository.OnTaskActionEventListener() {
+            @Override
+            public void onSuccess(String message) {
+                Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                loadData();
+            }
+
             @Override
             public void onError(String error) {
                 Toast.makeText(TasksActivity.this, error, Toast.LENGTH_SHORT).show();
@@ -89,6 +157,7 @@ public class TasksActivity extends AppCompatActivity {
 
     private void filterTasksByDate(int year, int month, int dayOfMonth) {
         List<Task> filteredList = new ArrayList<>();
+
         Calendar targetCal = Calendar.getInstance();
         targetCal.set(year, month, dayOfMonth, 0, 0, 0);
         targetCal.set(Calendar.MILLISECOND, 0);
@@ -98,8 +167,7 @@ public class TasksActivity extends AppCompatActivity {
                 Calendar taskCal = Calendar.getInstance();
                 taskCal.setTime(task.getExecutionTime().toDate());
                 if (isSameDay(targetCal, taskCal)) filteredList.add(task);
-            }
-            else if ("RECURRING".equals(task.getType()) && task.getStartDate() != null) {
+            } else if ("RECURRING".equals(task.getType()) && task.getStartDate() != null) {
                 Calendar startCal = Calendar.getInstance();
                 startCal.setTime(task.getStartDate().toDate());
                 startCal.set(Calendar.HOUR_OF_DAY, 0);
@@ -113,6 +181,8 @@ public class TasksActivity extends AppCompatActivity {
                     endCal.setTime(task.getEndDate().toDate());
                     endCal.set(Calendar.HOUR_OF_DAY, 23);
                     endCal.set(Calendar.MINUTE, 59);
+                    endCal.set(Calendar.SECOND, 59);
+                    endCal.set(Calendar.MILLISECOND, 999);
                 }
 
                 if (targetCal.before(startCal)) continue;
@@ -120,10 +190,10 @@ public class TasksActivity extends AppCompatActivity {
 
                 boolean match = false;
                 int interval = task.getInterval();
-                String unit = task.getUnit();
+                String unit = task.getUnit() != null ? task.getUnit() : "Day";
 
                 Calendar currentOccurrence = (Calendar) startCal.clone();
-                for (int i = 0; i < 500; i++) { // Limit to prevent infinite loops
+                for (int i = 0; i < 500; i++) {
                     if (isSameDay(targetCal, currentOccurrence)) {
                         match = true;
                         break;
@@ -137,6 +207,7 @@ public class TasksActivity extends AppCompatActivity {
                 if (match) filteredList.add(task);
             }
         }
+
         adapter.setData(filteredList, allCategories);
     }
 
