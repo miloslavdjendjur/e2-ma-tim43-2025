@@ -11,9 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.myapplication.R;
-import com.example.data.model.Task;
 import com.example.data.model.Category;
+import com.example.data.model.Task;
+import com.example.myapplication.R;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -25,6 +25,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     private List<Task> tasks = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
 
+    private String selectedDateKey;
+
     private final OnTaskStatusChangeListener statusListener;
     private final OnTaskActionsListener actionsListener;
 
@@ -33,6 +35,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     public interface OnTaskActionsListener {
+        void onView(Task task);
         void onEdit(Task task);
         void onDelete(Task task);
     }
@@ -40,6 +43,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public TaskAdapter(OnTaskStatusChangeListener statusListener, OnTaskActionsListener actionsListener) {
         this.statusListener = statusListener;
         this.actionsListener = actionsListener;
+    }
+
+    public void setSelectedDateKey(String selectedDateKey) {
+        this.selectedDateKey = selectedDateKey;
     }
 
     public void setData(List<Task> tasks, List<Category> categories) {
@@ -59,21 +66,36 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public void onBindViewHolder(@NonNull TaskViewHolder holder, int position) {
         Task task = tasks.get(position);
 
-        holder.tvTitle.setText(task.getName());
-        holder.cbDone.setChecked("done".equals(task.getStatus()));
+        holder.tvTitle.setText(task.getName() != null ? task.getName() : "");
 
-        // Vreme (SINGLE -> executionTime, RECURRING -> startDate)
+        // vreme
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
         String formattedTime = "--:--";
 
-        if ("SINGLE".equals(task.getType()) && task.getExecutionTime() != null) {
+        if (Task.TYPE_SINGLE.equals(task.getType()) && task.getExecutionTime() != null) {
             formattedTime = sdf.format(task.getExecutionTime().toDate());
-        } else if ("RECURRING".equals(task.getType()) && task.getStartDate() != null) {
+        } else if (Task.TYPE_RECURRING.equals(task.getType()) && task.getStartDate() != null) {
             formattedTime = sdf.format(task.getStartDate().toDate());
         }
         holder.tvTime.setText(formattedTime);
 
-        // Boja kategorije
+        // ✅ status (SINGLE -> task.status, RECURRING -> occurrenceStatuses[selectedDateKey])
+        String displayStatus = Task.STATUS_ACTIVE;
+
+        if (Task.TYPE_RECURRING.equals(task.getType())) {
+            String occ = task.getOccurrenceStatusForDateKey(selectedDateKey);
+            displayStatus = (occ != null && !occ.isEmpty()) ? occ : Task.STATUS_ACTIVE;
+        } else {
+            if (task.getStatus() != null && !task.getStatus().isEmpty()) displayStatus = task.getStatus();
+        }
+
+        holder.tvStatus.setText(displayStatus);
+
+        // checkbox = done / not done
+        holder.cbDone.setOnCheckedChangeListener(null);
+        holder.cbDone.setChecked(Task.STATUS_DONE.equals(displayStatus));
+
+        // boja kategorije
         holder.viewColor.setBackgroundColor(Color.GRAY);
         for (Category c : categories) {
             if (c.getId() != null && c.getId().equals(task.getCategoryId())) {
@@ -92,12 +114,12 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             }
         });
 
-        // Tap = Edit
+        // tap = view details
         holder.itemView.setOnClickListener(v -> {
-            if (actionsListener != null) actionsListener.onEdit(task);
+            if (actionsListener != null) actionsListener.onView(task);
         });
 
-        // Long press = menu (Edit/Delete)
+        // long press = menu
         holder.itemView.setOnLongClickListener(v -> {
             showPopupMenu(holder, task);
             return true;
@@ -108,14 +130,18 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         if (actionsListener == null) return;
 
         PopupMenu popup = new PopupMenu(holder.itemView.getContext(), holder.itemView);
-        popup.getMenu().add(0, 1, 0, "Edit");
-        popup.getMenu().add(0, 2, 1, "Delete");
+        popup.getMenu().add(0, 1, 0, "View");
+        popup.getMenu().add(0, 2, 1, "Edit");
+        popup.getMenu().add(0, 3, 2, "Delete");
 
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == 1) {
-                actionsListener.onEdit(task);
+                actionsListener.onView(task);
                 return true;
             } else if (item.getItemId() == 2) {
+                actionsListener.onEdit(task);
+                return true;
+            } else if (item.getItemId() == 3) {
                 actionsListener.onDelete(task);
                 return true;
             }
@@ -130,7 +156,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         View viewColor;
-        TextView tvTitle, tvTime;
+        TextView tvTitle, tvTime, tvStatus;
         CheckBox cbDone;
 
         public TaskViewHolder(@NonNull View itemView) {
@@ -138,6 +164,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             viewColor = itemView.findViewById(R.id.viewCategoryColorStrip);
             tvTitle = itemView.findViewById(R.id.tvTaskTitle);
             tvTime = itemView.findViewById(R.id.tvTaskTime);
+            tvStatus = itemView.findViewById(R.id.tvTaskStatus);
             cbDone = itemView.findViewById(R.id.cbDone);
         }
     }

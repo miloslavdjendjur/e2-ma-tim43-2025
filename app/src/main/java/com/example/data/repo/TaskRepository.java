@@ -5,6 +5,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.data.model.Task;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
@@ -14,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TaskRepository {
+
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final CollectionReference tasksRef = db.collection("tasks");
 
@@ -31,13 +33,12 @@ public class TaskRepository {
 
         task.setUserId(uid);
         if (task.getStatus() == null || task.getStatus().isEmpty()) {
-            task.setStatus("active");
+            task.setStatus(Task.STATUS_ACTIVE);
         }
 
         tasksRef.add(task)
                 .addOnSuccessListener(documentReference -> {
                     String id = documentReference.getId();
-                    // upiši id i u dokument (da bi kasnije mogli update/delete preko task.getId())
                     tasksRef.document(id).update("id", id)
                             .addOnSuccessListener(aVoid -> listener.onSuccess("Task saved successfully!"))
                             .addOnFailureListener(e -> listener.onError("Save error: " + e.getMessage()));
@@ -79,12 +80,8 @@ public class TaskRepository {
                         return;
                     }
                     Task t = snapshot.toObject(Task.class);
-                    // sigurnosna provera da ne ucitamo tudji task
-                    if (t != null && uid.equals(t.getUserId())) {
-                        listener.onLoaded(t);
-                    } else {
-                        listener.onLoaded(null);
-                    }
+                    if (t != null && uid.equals(t.getUserId())) listener.onLoaded(t);
+                    else listener.onLoaded(null);
                 })
                 .addOnFailureListener(e -> {
                     Log.e("TaskRepository", "getTaskById failed", e);
@@ -103,12 +100,10 @@ public class TaskRepository {
             return;
         }
 
-        // sacuvaj userId + id da uvek ostanu tacni
         task.setUserId(uid);
-        task.setId(task.getId());
 
         tasksRef.document(task.getId())
-                .set(task) // overwrite doc -> skida stara polja (bitno kad menjas SINGLE<->RECURRING)
+                .set(task)
                 .addOnSuccessListener(aVoid -> listener.onSuccess("Task updated successfully!"))
                 .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
     }
@@ -120,7 +115,6 @@ public class TaskRepository {
             return;
         }
 
-        // opcionalno: proveri vlasnistvo pre brisanja
         tasksRef.document(taskId).get()
                 .addOnSuccessListener(snapshot -> {
                     if (!snapshot.exists()) {
@@ -145,6 +139,65 @@ public class TaskRepository {
         tasksRef.document(taskId).update("status", newStatus)
                 .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: " + newStatus))
                 .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
+    }
+
+    public void updateTaskOccurrenceStatus(
+            @NonNull String taskId,
+            @NonNull String dateKey,
+            @NonNull String newStatus,
+            OnTaskActionEventListener listener
+    ) {
+        String uid = getUserId();
+        if (uid == null) {
+            listener.onError("User not logged in.");
+            return;
+        }
+
+        tasksRef.document(taskId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!snapshot.exists()) {
+                        listener.onError("Task not found.");
+                        return;
+                    }
+                    Task t = snapshot.toObject(Task.class);
+                    if (t == null || t.getUserId() == null || !uid.equals(t.getUserId())) {
+                        listener.onError("You don't have permission to modify this task.");
+                        return;
+                    }
+
+                    tasksRef.document(taskId)
+                            .update("occurrenceStatuses." + dateKey, newStatus)
+                            .addOnSuccessListener(aVoid -> listener.onSuccess("Occurrence status updated: " + newStatus))
+                            .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+                })
+                .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+    }
+
+    public void truncateRecurringFromDate(@NonNull String taskId, @NonNull Timestamp newEndDate, OnTaskActionEventListener listener) {
+        String uid = getUserId();
+        if (uid == null) {
+            listener.onError("User not logged in.");
+            return;
+        }
+
+        tasksRef.document(taskId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!snapshot.exists()) {
+                        listener.onError("Task not found.");
+                        return;
+                    }
+                    Task t = snapshot.toObject(Task.class);
+                    if (t == null || t.getUserId() == null || !uid.equals(t.getUserId())) {
+                        listener.onError("You don't have permission to modify this task.");
+                        return;
+                    }
+
+                    tasksRef.document(taskId)
+                            .update("endDate", newEndDate)
+                            .addOnSuccessListener(aVoid -> listener.onSuccess("Future occurrences removed."))
+                            .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+                })
+                .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
     }
 
     public interface OnTasksLoadedListener {

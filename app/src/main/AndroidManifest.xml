@@ -31,6 +31,8 @@
         <activity android:name="com.example.ui.category.CategoryActivity" />
         <activity android:name="com.example.ui.task.CreateTaskActivity" />
         <activity android:name="com.example.ui.task.TasksActivity" />
+        <activity android:name="com.example.ui.task.TaskDetailActivity" />
+
     </application>
 
 </manifest>
