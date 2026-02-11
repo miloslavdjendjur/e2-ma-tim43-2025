@@ -29,7 +29,7 @@
                 android:id="@+id/tvTaskTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Naziv zadatka"
+                android:text="Task Title"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 

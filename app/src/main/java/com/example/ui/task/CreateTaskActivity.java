@@ -22,15 +22,14 @@ public class CreateTaskActivity extends AppCompatActivity {
     private RadioGroup rgDifficulty, rgImportance;
     private androidx.appcompat.widget.SwitchCompat switchRecurring;
     private LinearLayout layoutRecurring;
-    private TextView tvSelectedDate;
-    private Button btnPickDate;
-    private TextView tvSelectedTime;
-    private Button btnPickTime;
+    private TextView tvSelectedDate, tvSelectedTime, tvSelectedEndDate;
+    private Button btnPickDate, btnPickTime, btnPickEndDate;
 
     private CategoryRepository categoryRepo = new CategoryRepository();
     private TaskRepository taskRepo = new TaskRepository();
     private List<Category> loadedCategories = new ArrayList<>();
     private Calendar selectedDate = Calendar.getInstance();
+    private Calendar selectedEndDate = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,9 +38,14 @@ public class CreateTaskActivity extends AppCompatActivity {
 
         initViews();
         loadCategories();
+        setupUnitSpinner();
 
-        btnPickDate.setOnClickListener(v -> showDatePicker());
+        btnPickDate.setOnClickListener(v -> showDatePicker(selectedDate, tvSelectedDate, "Date"));
         btnPickTime.setOnClickListener(v -> showTimePicker());
+        btnPickEndDate.setOnClickListener(v -> {
+            if (selectedEndDate == null) selectedEndDate = Calendar.getInstance();
+            showDatePicker(selectedEndDate, tvSelectedEndDate, "End Date");
+        });
 
         switchRecurring.setOnCheckedChangeListener((buttonView, isChecked) -> {
             layoutRecurring.setVisibility(isChecked ? View.VISIBLE : View.GONE);
@@ -64,33 +68,31 @@ public class CreateTaskActivity extends AppCompatActivity {
         btnPickDate = findViewById(R.id.btnPickDate);
         tvSelectedTime = findViewById(R.id.tvSelectedTime);
         btnPickTime = findViewById(R.id.btnPickTime);
+        tvSelectedEndDate = findViewById(R.id.tvSelectedEndDate);
+        btnPickEndDate = findViewById(R.id.btnPickEndDate);
     }
 
-    private void showDatePicker() {
+    private void showDatePicker(Calendar targetCal, TextView targetTv, String label) {
         new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
-            selectedDate.set(year, month, dayOfMonth, 0, 0, 0);
-            selectedDate.set(Calendar.MILLISECOND, 0);
-            tvSelectedDate.setText("Datum: " + dayOfMonth + "." + (month + 1) + "." + year + ".");
-        }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH)).show();
+            targetCal.set(year, month, dayOfMonth, 0, 0, 0);
+            targetCal.set(Calendar.MILLISECOND, 0);
+            targetTv.setText(label + ": " + dayOfMonth + "/" + (month + 1) + "/" + year);
+        }, targetCal.get(Calendar.YEAR), targetCal.get(Calendar.MONTH), targetCal.get(Calendar.DAY_OF_MONTH)).show();
     }
 
     private void showTimePicker() {
-        if (tvSelectedTime == null || selectedDate == null) return;
-
-        TimePickerDialog timePickerDialog = new TimePickerDialog(CreateTaskActivity.this,
+        TimePickerDialog timePickerDialog = new TimePickerDialog(this,
                 (view, hourOfDay, minute) -> {
                     selectedDate.set(Calendar.HOUR_OF_DAY, hourOfDay);
                     selectedDate.set(Calendar.MINUTE, minute);
                     selectedDate.set(Calendar.SECOND, 0);
                     selectedDate.set(Calendar.MILLISECOND, 0);
 
-                    String timeText = String.format("Vreme: %02d:%02d", hourOfDay, minute);
-                    tvSelectedTime.setText(timeText);
+                    tvSelectedTime.setText(String.format("Time: %02d:%02d", hourOfDay, minute));
                 },
                 selectedDate.get(Calendar.HOUR_OF_DAY),
                 selectedDate.get(Calendar.MINUTE),
-                true
-        );
+                true);
         timePickerDialog.show();
     }
 
@@ -105,28 +107,58 @@ public class CreateTaskActivity extends AppCompatActivity {
         });
     }
 
+    private void setupUnitSpinner() {
+        String[] units = {"Day", "Week"};
+        ArrayAdapter<String> unitAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, units);
+        unitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerUnit.setAdapter(unitAdapter);
+    }
+
     private void saveTask() {
         String name = etName.getText().toString().trim();
         if (name.isEmpty()) {
-            etName.setError("Naziv je obavezan");
+            etName.setError("Name is required");
+            return;
+        }
+
+        // Provera za kategoriju - ako se još učitavaju, spreči pucanje
+        if (spinnerCategory.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
+            Toast.makeText(this, "Please select a category", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Task newTask = new Task();
         newTask.setName(name);
         newTask.setDescription(etDesc.getText().toString().trim());
-        newTask.setCategoryId(loadedCategories.get(spinnerCategory.getSelectedItemPosition()).getId());
         newTask.setDifficultyXp(getDifficultyXp());
         newTask.setImportanceXp(getImportanceXp());
-        newTask.setExecutionTime(new com.google.firebase.Timestamp(selectedDate.getTime()));
-        newTask.setStatus("aktivan");
+        newTask.setCategoryId(loadedCategories.get(spinnerCategory.getSelectedItemPosition()).getId());
+        newTask.setStatus("active");
 
         if (switchRecurring.isChecked()) {
             newTask.setType("RECURRING");
-            newTask.setInterval(Integer.parseInt(etInterval.getText().toString()));
-            newTask.setUnit(spinnerUnit.getSelectedItem().toString());
+
+            String intervalStr = etInterval.getText().toString().trim();
+            if (intervalStr.isEmpty()) {
+                etInterval.setError("Interval is required for recurring tasks");
+                return;
+            }
+            newTask.setInterval(Integer.parseInt(intervalStr));
+
+            if (spinnerUnit.getSelectedItem() != null) {
+                newTask.setUnit(spinnerUnit.getSelectedItem().toString());
+            } else {
+                newTask.setUnit("Day");
+            }
+
+            newTask.setStartDate(new com.google.firebase.Timestamp(selectedDate.getTime()));
+
+            if (selectedEndDate != null) {
+                newTask.setEndDate(new com.google.firebase.Timestamp(selectedEndDate.getTime()));
+            }
         } else {
             newTask.setType("SINGLE");
+            newTask.setExecutionTime(new com.google.firebase.Timestamp(selectedDate.getTime()));
         }
 
         taskRepo.addTask(newTask, new TaskRepository.OnTaskActionEventListener() {
@@ -137,7 +169,7 @@ public class CreateTaskActivity extends AppCompatActivity {
             }
             @Override
             public void onError(String error) {
-                Toast.makeText(CreateTaskActivity.this, error, Toast.LENGTH_SHORT).show();
+                Toast.makeText(CreateTaskActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }

@@ -4,17 +4,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.CalendarView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.data.model.Category;
 import com.example.myapplication.R;
 import com.example.data.model.Task;
 import com.example.data.repo.CategoryRepository;
 import com.example.data.repo.TaskRepository;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -23,16 +20,11 @@ public class TasksActivity extends AppCompatActivity {
 
     private RecyclerView rvTasks;
     private TaskAdapter adapter;
-
     private final TaskRepository taskRepo = new TaskRepository();
     private final CategoryRepository catRepo = new CategoryRepository();
-
     private List<Task> allTasks = new ArrayList<>();
     private List<Category> allCategories = new ArrayList<>();
-
-    private int selectedYear;
-    private int selectedMonth;      // 0-11
-    private int selectedDayOfMonth;
+    private int selectedYear, selectedMonth, selectedDayOfMonth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +36,7 @@ public class TasksActivity extends AppCompatActivity {
 
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
         adapter = new TaskAdapter((task, isDone) -> {
-            String newStatus = isDone ? "urađen" : "aktivan";
+            String newStatus = isDone ? "done" : "active";
             updateStatus(task, newStatus);
         });
         rvTasks.setAdapter(adapter);
@@ -58,11 +50,7 @@ public class TasksActivity extends AppCompatActivity {
             selectedYear = year;
             selectedMonth = month;
             selectedDayOfMonth = dayOfMonth;
-
-            Toast.makeText(this,
-                    "Tražim: " + dayOfMonth + "." + (month + 1) + "." + year,
-                    Toast.LENGTH_SHORT).show();
-
+            Toast.makeText(this, "Searching: " + dayOfMonth + "/" + (month + 1) + "/" + year, Toast.LENGTH_SHORT).show();
             filterTasksByDate(year, month, dayOfMonth);
         });
 
@@ -72,20 +60,14 @@ public class TasksActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Kad se vratiš iz CreateTaskActivity, osveži podatke
         loadData();
     }
 
     private void loadData() {
         catRepo.getAllCategories(categories -> {
             this.allCategories = categories;
-
             taskRepo.getTasks(tasks -> {
                 this.allTasks = tasks;
-
-                Log.d("TasksActivity", "Loaded tasks: " + tasks.size());
-
-                // Prikaži zadatke za trenutno selektovan datum
                 filterTasksByDate(selectedYear, selectedMonth, selectedDayOfMonth);
             });
         });
@@ -98,7 +80,6 @@ public class TasksActivity extends AppCompatActivity {
                 Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
                 loadData();
             }
-
             @Override
             public void onError(String error) {
                 Toast.makeText(TasksActivity.this, error, Toast.LENGTH_SHORT).show();
@@ -108,31 +89,59 @@ public class TasksActivity extends AppCompatActivity {
 
     private void filterTasksByDate(int year, int month, int dayOfMonth) {
         List<Task> filteredList = new ArrayList<>();
-
-        String targetDateStr = year + "-" + month + "-" + dayOfMonth;
+        Calendar targetCal = Calendar.getInstance();
+        targetCal.set(year, month, dayOfMonth, 0, 0, 0);
+        targetCal.set(Calendar.MILLISECOND, 0);
 
         for (Task task : allTasks) {
-            if (task.getExecutionTime() != null) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(task.getExecutionTime().toDate());
+            if ("SINGLE".equals(task.getType()) && task.getExecutionTime() != null) {
+                Calendar taskCal = Calendar.getInstance();
+                taskCal.setTime(task.getExecutionTime().toDate());
+                if (isSameDay(targetCal, taskCal)) filteredList.add(task);
+            }
+            else if ("RECURRING".equals(task.getType()) && task.getStartDate() != null) {
+                Calendar startCal = Calendar.getInstance();
+                startCal.setTime(task.getStartDate().toDate());
+                startCal.set(Calendar.HOUR_OF_DAY, 0);
+                startCal.set(Calendar.MINUTE, 0);
+                startCal.set(Calendar.SECOND, 0);
+                startCal.set(Calendar.MILLISECOND, 0);
 
-                int taskYear = cal.get(Calendar.YEAR);
-                int taskMonth = cal.get(Calendar.MONTH);
-                int taskDay = cal.get(Calendar.DAY_OF_MONTH);
-
-                String taskDateStr = taskYear + "-" + taskMonth + "-" + taskDay;
-
-                if (targetDateStr.equals(taskDateStr)) {
-                    filteredList.add(task);
+                Calendar endCal = null;
+                if (task.getEndDate() != null) {
+                    endCal = Calendar.getInstance();
+                    endCal.setTime(task.getEndDate().toDate());
+                    endCal.set(Calendar.HOUR_OF_DAY, 23);
+                    endCal.set(Calendar.MINUTE, 59);
                 }
+
+                if (targetCal.before(startCal)) continue;
+                if (endCal != null && targetCal.after(endCal)) continue;
+
+                boolean match = false;
+                int interval = task.getInterval();
+                String unit = task.getUnit();
+
+                Calendar currentOccurrence = (Calendar) startCal.clone();
+                for (int i = 0; i < 500; i++) { // Limit to prevent infinite loops
+                    if (isSameDay(targetCal, currentOccurrence)) {
+                        match = true;
+                        break;
+                    }
+                    if (currentOccurrence.after(targetCal)) break;
+
+                    if (unit.contains("Day")) currentOccurrence.add(Calendar.DAY_OF_YEAR, interval);
+                    else if (unit.contains("Week")) currentOccurrence.add(Calendar.WEEK_OF_YEAR, interval);
+                    else break;
+                }
+                if (match) filteredList.add(task);
             }
         }
-
         adapter.setData(filteredList, allCategories);
+    }
 
-        if (filteredList.isEmpty()) {
-
-            Toast.makeText(this, "Nema zadataka za: " + dayOfMonth + "." + (month + 1) + ".", Toast.LENGTH_SHORT).show();
-        }
+    private boolean isSameDay(Calendar cal1, Calendar cal2) {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
     }
 }

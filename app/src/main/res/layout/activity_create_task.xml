@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Kreiranje novog zadatka"
+            android:text="Create New Task"
             android:textSize="22sp"
             android:textStyle="bold"
             android:gravity="center"
@@ -23,21 +23,21 @@
             android:id="@+id/etTaskName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Naziv zadatka"
+            android:hint="Task Name"
             android:inputType="textCapSentences" />
 
         <EditText
             android:id="@+id/etTaskDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Opis (opciono)"
+            android:hint="Description (optional)"
             android:inputType="textMultiLine"
             android:layout_marginTop="8dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Kategorija:"
+            android:text="Category:"
             android:layout_marginTop="16dp"
             android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Težina:"
+            android:text="Difficulty:"
             android:layout_marginTop="16dp"
             android:textStyle="bold" />
 
@@ -58,16 +58,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
-            <RadioButton android:id="@+id/rbVeryEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Jako Lako" />
-            <RadioButton android:id="@+id/rbEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lak" />
-            <RadioButton android:id="@+id/rbHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Težak" />
-            <RadioButton android:id="@+id/rbExtremelyHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Baš Težak" />
+            <RadioButton android:id="@+id/rbVeryEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="V. Easy" />
+            <RadioButton android:id="@+id/rbEasy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Easy" />
+            <RadioButton android:id="@+id/rbHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hard" />
+            <RadioButton android:id="@+id/rbExtremelyHard" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="V. Hard" />
         </RadioGroup>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bitnost:"
+            android:text="Importance:"
             android:layout_marginTop="16dp"
             android:textStyle="bold" />
 
@@ -78,8 +78,8 @@
             android:orientation="horizontal"
             android:layout_marginTop="4dp">
             <RadioButton android:id="@+id/rbNormal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Norm." />
-            <RadioButton android:id="@+id/rbImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Važan" />
-            <RadioButton android:id="@+id/rbExtremelyImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="E.Važan" />
+            <RadioButton android:id="@+id/rbImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Impt." />
+            <RadioButton android:id="@+id/rbExtremelyImportant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="E.Impt." />
             <RadioButton android:id="@+id/rbSpecial" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Spec." />
         </RadioGroup>
 
@@ -105,12 +105,12 @@
                     android:id="@+id/tvSelectedDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Datum nije izabran" />
+                    android:text="No date selected" />
                 <TextView
                     android:id="@+id/tvSelectedTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Vreme nije izabrano"
+                    android:text="No time selected"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -119,21 +119,21 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Datum" />
+                android:text="Date" />
 
             <Button
                 android:id="@+id/btnPickTime"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Vreme" />
+                android:text="Time" />
         </LinearLayout>
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchRecurring"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ponavljajući zadatak"
+            android:text="Recurring Task"
             android:layout_marginTop="16dp" />
 
         <LinearLayout
@@ -147,21 +147,42 @@
                 android:id="@+id/etInterval"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Svakih (npr. 2)"
+                android:hint="Interval (e.g. 2)"
                 android:inputType="number" />
 
             <Spinner
                 android:id="@+id/spinnerUnit"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:entries="@array/recurring_units" />
+                android:layout_height="48dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvSelectedEndDate"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="No end date (optional)" />
+
+                <Button
+                    android:id="@+id/btnPickEndDate"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="End Date" />
+            </LinearLayout>
         </LinearLayout>
 
         <Button
             android:id="@+id/btnSaveTask"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SAČUVAJ ZADATAK"
+            android:text="SAVE TASK"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="32dp" />
 

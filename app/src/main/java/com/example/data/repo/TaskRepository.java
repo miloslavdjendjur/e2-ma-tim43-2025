@@ -1,13 +1,11 @@
 package com.example.data.repo;
 
 import android.util.Log;
-
 import com.example.data.model.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -23,20 +21,20 @@ public class TaskRepository {
     public void addTask(Task task, OnTaskActionEventListener listener) {
         String uid = getUserId();
         if (uid == null) {
-            listener.onError("Korisnik nije ulogovan.");
+            listener.onError("User not logged in.");
             return;
         }
 
         task.setUserId(uid);
-        task.setStatus("aktivan");
+        task.setStatus("active");
 
         tasksRef.add(task)
                 .addOnSuccessListener(documentReference -> {
                     String id = documentReference.getId();
                     tasksRef.document(id).update("id", id);
-                    listener.onSuccess("Zadatak uspešno sačuvan!");
+                    listener.onSuccess("Task saved successfully!");
                 })
-                .addOnFailureListener(e -> listener.onError("Greška pri čuvanju: " + e.getMessage()));
+                .addOnFailureListener(e -> listener.onError("Save error: " + e.getMessage()));
     }
 
     public void getTasks(OnTasksLoadedListener listener) {
@@ -60,8 +58,8 @@ public class TaskRepository {
 
     public void updateTaskStatus(String taskId, String newStatus, OnTaskActionEventListener listener) {
         tasksRef.document(taskId).update("status", newStatus)
-                .addOnSuccessListener(aVoid -> listener.onSuccess("Status ažuriran: " + newStatus))
-                .addOnFailureListener(e -> listener.onError("Greška: " + e.getMessage()));
+                .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: " + newStatus))
+                .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
     }
 
     public interface OnTasksLoadedListener {
