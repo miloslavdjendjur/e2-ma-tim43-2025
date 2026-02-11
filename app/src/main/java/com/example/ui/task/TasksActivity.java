@@ -109,27 +109,30 @@ public class TasksActivity extends AppCompatActivity {
     private void filterTasksByDate(int year, int month, int dayOfMonth) {
         List<Task> filteredList = new ArrayList<>();
 
+        String targetDateStr = year + "-" + month + "-" + dayOfMonth;
+
         for (Task task : allTasks) {
-            if (task.getExecutionTime() == null) continue;
+            if (task.getExecutionTime() != null) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(task.getExecutionTime().toDate());
 
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(task.getExecutionTime().toDate());
+                int taskYear = cal.get(Calendar.YEAR);
+                int taskMonth = cal.get(Calendar.MONTH);
+                int taskDay = cal.get(Calendar.DAY_OF_MONTH);
 
-            int taskYear = cal.get(Calendar.YEAR);
-            int taskMonth = cal.get(Calendar.MONTH);
-            int taskDay = cal.get(Calendar.DAY_OF_MONTH);
+                String taskDateStr = taskYear + "-" + taskMonth + "-" + taskDay;
 
-            if (taskYear == year && taskMonth == month && taskDay == dayOfMonth) {
-                filteredList.add(task);
+                if (targetDateStr.equals(taskDateStr)) {
+                    filteredList.add(task);
+                }
             }
         }
 
         adapter.setData(filteredList, allCategories);
 
         if (filteredList.isEmpty()) {
-            Toast.makeText(this,
-                    "Nema zadataka za: " + dayOfMonth + "." + (month + 1) + ".",
-                    Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(this, "Nema zadataka za: " + dayOfMonth + "." + (month + 1) + ".", Toast.LENGTH_SHORT).show();
         }
     }
 }
