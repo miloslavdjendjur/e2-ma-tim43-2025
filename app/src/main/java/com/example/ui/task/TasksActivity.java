@@ -36,7 +36,7 @@ public class TasksActivity extends AppCompatActivity {
 
     private int selectedYear, selectedMonth, selectedDayOfMonth;
 
-    private String getSelectedDateKey() {
+    private String selectedDateKey() {
         Calendar c = Calendar.getInstance();
         c.set(selectedYear, selectedMonth, selectedDayOfMonth, 0, 0, 0);
         c.set(Calendar.MILLISECOND, 0);
@@ -54,31 +54,16 @@ public class TasksActivity extends AppCompatActivity {
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new TaskAdapter(
+                // quick checkbox done/active
                 (task, isDone) -> {
                     String newStatus = isDone ? Task.STATUS_DONE : Task.STATUS_ACTIVE;
-
-                    // ✅ SINGLE vs RECURRING status upis
-                    if (Task.TYPE_RECURRING.equals(task.getType())) {
-                        String dateKey = getSelectedDateKey();
-                        taskRepo.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
-                            @Override
-                            public void onSuccess(String message) {
-                                loadData();
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    } else {
-                        updateStatus(task, newStatus);
-                    }
+                    updateStatus(task, newStatus);
                 },
+                // popup actions
                 new TaskAdapter.OnTaskActionsListener() {
                     @Override
                     public void onView(Task task) {
-                        openTaskDetail(task);
+                        openDetail(task);
                     }
 
                     @Override
@@ -118,18 +103,22 @@ public class TasksActivity extends AppCompatActivity {
 
     private void loadData() {
         catRepo.getAllCategories(categories -> {
-            this.allCategories = categories != null ? categories : new ArrayList<>();
+            allCategories = (categories != null) ? categories : new ArrayList<>();
             taskRepo.getTasks(tasks -> {
-                this.allTasks = tasks != null ? tasks : new ArrayList<>();
+                allTasks = (tasks != null) ? tasks : new ArrayList<>();
                 filterTasksByDate(selectedYear, selectedMonth, selectedDayOfMonth);
             });
         });
     }
 
-    private void openTaskDetail(Task task) {
+    private void openDetail(Task task) {
+        if (task.getId() == null || task.getId().isEmpty()) {
+            Toast.makeText(this, "Task id missing.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Intent i = new Intent(this, TaskDetailActivity.class);
         i.putExtra(TaskDetailActivity.EXTRA_TASK_ID, task.getId());
-        i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, getSelectedDateKey()); // bitno za recurring
+        i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, selectedDateKey()); // important for recurring
         startActivity(i);
     }
 
@@ -139,59 +128,102 @@ public class TasksActivity extends AppCompatActivity {
             return;
         }
 
-        taskRepo.updateTaskStatus(task.getId(), newStatus, new TaskRepository.OnTaskActionEventListener() {
-            @Override
-            public void onSuccess(String message) {
-                loadData();
-            }
+        if (Task.TYPE_RECURRING.equals(task.getType())) {
+            String dateKey = selectedDateKey();
+            taskRepo.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
+                @Override
+                public void onSuccess(String message) {
+                    Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                    loadData();
+                }
 
-            @Override
-            public void onError(String error) {
-                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
-            }
-        });
+                @Override
+                public void onError(String error) {
+                    Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
+                }
+            });
+        } else {
+            taskRepo.updateTaskStatus(task.getId(), newStatus, new TaskRepository.OnTaskActionEventListener() {
+                @Override
+                public void onSuccess(String message) {
+                    Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                    loadData();
+                }
+
+                @Override
+                public void onError(String error) {
+                    Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
 
     private void openEditTask(Task task) {
+        if (task.getId() == null || task.getId().isEmpty()) {
+            Toast.makeText(this, "Task id missing - can't edit.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent i = new Intent(this, CreateTaskActivity.class);
         i.putExtra(CreateTaskActivity.EXTRA_TASK_ID, task.getId());
         startActivity(i);
     }
 
     private void confirmDelete(Task task) {
-        if (Task.TYPE_SINGLE.equals(task.getType())) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Delete task")
-                    .setMessage("Delete this task?")
-                    .setPositiveButton("Delete", (dialog, which) -> deleteTask(task.getId()))
-                    .setNegativeButton("Cancel", null)
-                    .show();
+
+        if (task.getId() == null || task.getId().isEmpty()) {
+            Toast.makeText(this, "Task id missing - can't delete.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // RECURRING
-        new AlertDialog.Builder(this)
-                .setTitle("Delete recurring task")
-                .setItems(new CharSequence[]{
-                        "Delete this occurrence + future occurrences",
-                        "Delete entire series"
-                }, (dialog, which) -> {
-                    if (which == 0) {
-                        truncateRecurringFromSelectedDate(task);
-                    } else {
-                        deleteWholeDocument(task);
-                    }
-                })
-                .show();
+        // 🔒 RULE: Nije moguće obrisati završene zadatke
+
+        // SINGLE
+        if (Task.TYPE_SINGLE.equals(task.getType())) {
+            if (Task.STATUS_DONE.equals(task.getStatus())) {
+                Toast.makeText(this, "Finished tasks cannot be deleted.", Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+
+        // RECURRING (provera za konkretno ponavljanje u kalendaru)
+        if (Task.TYPE_RECURRING.equals(task.getType())) {
+            String dateKey = selectedDateKey(); // već imaš ovu metodu
+
+            String occStatus = task.getOccurrenceStatusForDateKey(dateKey);
+            if (Task.STATUS_DONE.equals(occStatus)) {
+                Toast.makeText(this, "Finished occurrences cannot be deleted.", Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+
+        // Ako nije finished → dozvoli delete
+        if (Task.TYPE_RECURRING.equals(task.getType())) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete recurring task")
+                    .setMessage("What do you want to delete?")
+                    .setPositiveButton("This occurrence + future", (d, w) -> truncateRecurringFromSelectedDate(task))
+                    .setNeutralButton("Entire series", (d, w) -> deleteWholeDocument(task))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete task")
+                    .setMessage("Are you sure you want to delete: \"" + task.getName() + "\"?")
+                    .setPositiveButton("Delete", (dialog, which) -> deleteTask(task.getId()))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
     }
 
+
     private void truncateRecurringFromSelectedDate(Task task) {
+        // endDate = last millisecond of PREVIOUS day (so selected date + future disappear)
         Calendar cut = Calendar.getInstance();
         cut.set(selectedYear, selectedMonth, selectedDayOfMonth, 0, 0, 0);
         cut.set(Calendar.MILLISECOND, 0);
-
-        // endDate = 1ms pre izabranog dana
         cut.add(Calendar.MILLISECOND, -1);
+
         Timestamp newEnd = new Timestamp(cut.getTime());
 
         taskRepo.truncateRecurringFromDate(task.getId(), newEnd, new TaskRepository.OnTaskActionEventListener() {
@@ -227,7 +259,7 @@ public class TasksActivity extends AppCompatActivity {
 
             @Override
             public void onError(String error) {
-                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_SHORT).show();
+                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -241,13 +273,16 @@ public class TasksActivity extends AppCompatActivity {
 
         for (Task task : allTasks) {
 
+            // SINGLE
             if (Task.TYPE_SINGLE.equals(task.getType()) && task.getExecutionTime() != null) {
                 Calendar taskCal = Calendar.getInstance();
                 taskCal.setTime(task.getExecutionTime().toDate());
                 if (isSameDay(targetCal, taskCal)) filteredList.add(task);
+                continue;
+            }
 
-            } else if (Task.TYPE_RECURRING.equals(task.getType()) && task.getStartDate() != null) {
-
+            // RECURRING
+            if (Task.TYPE_RECURRING.equals(task.getType()) && task.getStartDate() != null) {
                 Calendar startCal = Calendar.getInstance();
                 startCal.setTime(task.getStartDate().toDate());
                 startCal.set(Calendar.HOUR_OF_DAY, 0);
@@ -265,26 +300,24 @@ public class TasksActivity extends AppCompatActivity {
                 if (endCal != null && targetCal.after(endCal)) continue;
 
                 boolean match = false;
-                int interval = task.getInterval();
-                String unit = task.getUnit() != null ? task.getUnit() : "Day";
+                int interval = Math.max(task.getInterval(), 1);
+                String unit = (task.getUnit() != null) ? task.getUnit() : "Day";
 
-                Calendar currentOccurrence = (Calendar) startCal.clone();
-                for (int i = 0; i < 500; i++) {
-                    if (isSameDay(targetCal, currentOccurrence)) {
-                        match = true;
-                        break;
-                    }
-                    if (currentOccurrence.after(targetCal)) break;
+                Calendar cur = (Calendar) startCal.clone();
+                for (int i = 0; i < 700; i++) {
+                    if (isSameDay(targetCal, cur)) { match = true; break; }
+                    if (cur.after(targetCal)) break;
 
-                    if (unit.contains("Day")) currentOccurrence.add(Calendar.DAY_OF_YEAR, interval);
-                    else if (unit.contains("Week")) currentOccurrence.add(Calendar.WEEK_OF_YEAR, interval);
+                    if (unit.contains("Day")) cur.add(Calendar.DAY_OF_YEAR, interval);
+                    else if (unit.contains("Week")) cur.add(Calendar.WEEK_OF_YEAR, interval);
                     else break;
                 }
+
                 if (match) filteredList.add(task);
             }
         }
 
-        adapter.setSelectedDateKey(getSelectedDateKey());
+        adapter.setSelectedDateKey(selectedDateKey());
         adapter.setData(filteredList, allCategories);
     }
 

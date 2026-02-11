@@ -10,9 +10,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TaskRepository {
 
@@ -32,8 +35,18 @@ public class TaskRepository {
         }
 
         task.setUserId(uid);
+
+        // default statuses
+        if (task.getType() == null || task.getType().isEmpty()) {
+            task.setType(Task.TYPE_SINGLE);
+        }
         if (task.getStatus() == null || task.getStatus().isEmpty()) {
             task.setStatus(Task.STATUS_ACTIVE);
+        }
+
+        // Ensure map exists for recurring (optional but nice)
+        if (Task.TYPE_RECURRING.equals(task.getType()) && task.getOccurrenceStatuses() == null) {
+            task.setOccurrenceStatuses(new HashMap<>());
         }
 
         tasksRef.add(task)
@@ -89,6 +102,9 @@ public class TaskRepository {
                 });
     }
 
+    /**
+     * IMPORTANT: use merge so you don't wipe occurrenceStatuses when editing base fields.
+     */
     public void updateTask(@NonNull Task task, OnTaskActionEventListener listener) {
         String uid = getUserId();
         if (uid == null) {
@@ -103,7 +119,7 @@ public class TaskRepository {
         task.setUserId(uid);
 
         tasksRef.document(task.getId())
-                .set(task)
+                .set(task, SetOptions.merge())
                 .addOnSuccessListener(aVoid -> listener.onSuccess("Task updated successfully!"))
                 .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
     }
@@ -141,6 +157,10 @@ public class TaskRepository {
                 .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
     }
 
+    /**
+     * For recurring tasks: update status for a specific date occurrence (yyyy-MM-dd).
+     * Stored in: occurrenceStatuses.{dateKey} = newStatus
+     */
     public void updateTaskOccurrenceStatus(
             @NonNull String taskId,
             @NonNull String dateKey,
@@ -159,21 +179,34 @@ public class TaskRepository {
                         listener.onError("Task not found.");
                         return;
                     }
+
                     Task t = snapshot.toObject(Task.class);
                     if (t == null || t.getUserId() == null || !uid.equals(t.getUserId())) {
                         listener.onError("You don't have permission to modify this task.");
                         return;
                     }
 
+                    String fieldPath = "occurrenceStatuses." + dateKey;
+                    Map<String, Object> update = new HashMap<>();
+                    update.put(fieldPath, newStatus);
+
                     tasksRef.document(taskId)
-                            .update("occurrenceStatuses." + dateKey, newStatus)
-                            .addOnSuccessListener(aVoid -> listener.onSuccess("Occurrence status updated: " + newStatus))
-                            .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+                            .update(update)
+                            .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: " + newStatus))
+                            .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
                 })
-                .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+                .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
     }
 
-    public void truncateRecurringFromDate(@NonNull String taskId, @NonNull Timestamp newEndDate, OnTaskActionEventListener listener) {
+    /**
+     * Spec: delete one occurrence => remove future occurrences, keep past occurrences visible.
+     * Implementation: set endDate to cut-off timestamp.
+     */
+    public void truncateRecurringFromDate(
+            @NonNull String taskId,
+            @NonNull Timestamp newEndDate,
+            OnTaskActionEventListener listener
+    ) {
         String uid = getUserId();
         if (uid == null) {
             listener.onError("User not logged in.");

@@ -38,11 +38,6 @@ public class AllTasksActivity extends AppCompatActivity {
     private enum FilterMode { SINGLE, RECURRING }
     private FilterMode currentFilter = FilterMode.SINGLE;
 
-    private String todayDateKey() {
-        Calendar c = Calendar.getInstance();
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(c.getTime());
-    }
-
     private Calendar todayStart() {
         Calendar c = Calendar.getInstance();
         c.set(Calendar.HOUR_OF_DAY, 0);
@@ -50,6 +45,72 @@ public class AllTasksActivity extends AppCompatActivity {
         c.set(Calendar.SECOND, 0);
         c.set(Calendar.MILLISECOND, 0);
         return c;
+    }
+
+    private String dateKey(Calendar c) {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(c.getTime());
+    }
+
+    /**
+     * Returns the next valid occurrence dateKey (yyyy-MM-dd) for a recurring task
+     * where occurrence date >= todayStart and <= endDate (if endDate exists).
+     * If no future occurrence exists -> null.
+     */
+    private String nextOccurrenceDateKey(Task t) {
+        if (t == null) return null;
+        if (!Task.TYPE_RECURRING.equals(t.getType())) return null;
+        if (t.getStartDate() == null) return null;
+
+        Calendar today = todayStart();
+
+        Calendar start = Calendar.getInstance();
+        start.setTime(t.getStartDate().toDate());
+        start.set(Calendar.HOUR_OF_DAY, 0);
+        start.set(Calendar.MINUTE, 0);
+        start.set(Calendar.SECOND, 0);
+        start.set(Calendar.MILLISECOND, 0);
+
+        Calendar end = null;
+        if (t.getEndDate() != null) {
+            end = Calendar.getInstance();
+            end.setTime(t.getEndDate().toDate());
+            // endDate može imati vreme; ostavljamo ga kao granicu "do tog trenutka"
+        }
+
+        // Ako je već završeno pre danas
+        if (end != null && end.before(today)) return null;
+
+        int interval = Math.max(1, t.getInterval());
+        String unit = (t.getUnit() != null) ? t.getUnit() : "Day";
+
+        // Ako još nije krenulo, sledeći je start
+        if (start.after(today)) {
+            return dateKey(start);
+        }
+
+        // Krenulo je ranije: nađi sledeći occurrence >= danas
+        Calendar cur = (Calendar) start.clone();
+
+        // Bezbednosni limit da se ne zaglavi
+        for (int i = 0; i < 2000; i++) {
+            // ako je cur >= today -> to je next
+            if (!cur.before(today)) {
+                if (end != null && cur.after(end)) return null;
+                return dateKey(cur);
+            }
+
+            if (unit.contains("Day")) cur.add(Calendar.DAY_OF_YEAR, interval);
+            else if (unit.contains("Week")) cur.add(Calendar.WEEK_OF_YEAR, interval);
+            else {
+                // ako nema Month/Year u specu, ovo je dovoljno
+                // ako ima, dodaj: Calendar.MONTH / Calendar.YEAR
+                return null;
+            }
+
+            if (end != null && cur.after(end)) return null;
+        }
+
+        return null;
     }
 
     @Override
@@ -64,18 +125,20 @@ public class AllTasksActivity extends AppCompatActivity {
         rvAllTasks.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new AllTasksAdapter(
-                // open detail
-                (task) -> openDetail(task),
-                // on long press
-                (task) -> openDetail(task),
-                // quick done/active toggle
-                (task, isDone) -> {
+                // click
+                (task, occKey) -> openDetail(task, occKey),
+                // long press
+                (task, occKey) -> openDetail(task, occKey),
+                // quick done toggle
+                (task, occKey, isDone) -> {
                     String newStatus = isDone ? Task.STATUS_DONE : Task.STATUS_ACTIVE;
 
                     if (Task.TYPE_RECURRING.equals(task.getType())) {
-                        // All tasks list nije vezan za datum; koristimo današnji dateKey (razumno i prolazi specifikaciju)
-                        String dateKey = todayDateKey();
-                        taskRepo.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
+                        if (occKey == null) {
+                            Toast.makeText(this, "No valid next occurrence for this task.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        taskRepo.updateTaskOccurrenceStatus(task.getId(), occKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
                             @Override
                             public void onSuccess(String message) { loadData(); }
                             @Override
@@ -94,8 +157,8 @@ public class AllTasksActivity extends AppCompatActivity {
                         });
                     }
                 },
-                // full status picker
-                (task) -> showStatusPicker(task)
+                // status picker
+                (task, occKey) -> showStatusPicker(task, occKey)
         );
 
         rvAllTasks.setAdapter(adapter);
@@ -131,14 +194,14 @@ public class AllTasksActivity extends AppCompatActivity {
     }
 
     private void render() {
-        // UI hint za filter dugmad
         btnFilterSingle.setEnabled(currentFilter != FilterMode.SINGLE);
         btnFilterRecurring.setEnabled(currentFilter != FilterMode.RECURRING);
 
         Calendar startToday = todayStart();
-        List<Task> filtered = new ArrayList<>();
+        List<AllTasksAdapter.DisplayItem> filtered = new ArrayList<>();
 
         for (Task t : allTasks) {
+
             if (currentFilter == FilterMode.SINGLE) {
                 if (!Task.TYPE_SINGLE.equals(t.getType())) continue;
                 if (t.getExecutionTime() == null) continue;
@@ -149,43 +212,42 @@ public class AllTasksActivity extends AppCompatActivity {
                 // spec: u listi samo trenutni i buduci
                 if (exec.before(startToday)) continue;
 
-                filtered.add(t);
+                filtered.add(new AllTasksAdapter.DisplayItem(t, null));
 
             } else {
                 if (!Task.TYPE_RECURRING.equals(t.getType())) continue;
                 if (t.getStartDate() == null) continue;
 
-                Calendar start = Calendar.getInstance();
-                start.setTime(t.getStartDate().toDate());
-                start.set(Calendar.HOUR_OF_DAY, 0);
-                start.set(Calendar.MINUTE, 0);
-                start.set(Calendar.SECOND, 0);
-                start.set(Calendar.MILLISECOND, 0);
-
-                // ako jos nije krenuo, ok je (buduci)
-                // ako je krenuo ranije, i dalje je ok (trenutni)
-                // ali ako ima endDate i endDate < danas => ne prikazuj
+                // izbaci ako je end < danas (spec: u listi samo trenutni i buduci)
                 if (t.getEndDate() != null) {
                     Calendar end = Calendar.getInstance();
                     end.setTime(t.getEndDate().toDate());
                     if (end.before(startToday)) continue;
                 }
 
-                filtered.add(t);
+                String nextKey = nextOccurrenceDateKey(t);
+                if (nextKey == null) continue; // nema više validnih ponavljanja
+
+                filtered.add(new AllTasksAdapter.DisplayItem(t, nextKey));
             }
         }
 
-        adapter.setData(filtered, allCategories, todayDateKey());
+        adapter.setData(filtered, allCategories);
     }
 
-    private void openDetail(Task task) {
+    private void openDetail(Task task, String occKey) {
         Intent i = new Intent(this, TaskDetailActivity.class);
         i.putExtra(TaskDetailActivity.EXTRA_TASK_ID, task.getId());
-        i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, todayDateKey()); // za recurring status u detail-u
+
+        // za recurring šaljemo next occurrence dateKey, ne "danas"
+        if (Task.TYPE_RECURRING.equals(task.getType()) && occKey != null) {
+            i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, occKey);
+        }
+
         startActivity(i);
     }
 
-    private void showStatusPicker(Task task) {
+    private void showStatusPicker(Task task, String occKey) {
         String[] options = new String[]{
                 Task.STATUS_ACTIVE,
                 Task.STATUS_DONE,
@@ -193,14 +255,19 @@ public class AllTasksActivity extends AppCompatActivity {
                 Task.STATUS_CANCELED
         };
 
-        String current;
-        String dateKey = todayDateKey();
+        String current = Task.STATUS_ACTIVE;
 
         if (Task.TYPE_RECURRING.equals(task.getType())) {
-            String occ = task.getOccurrenceStatusForDateKey(dateKey);
+            if (occKey == null) {
+                Toast.makeText(this, "No valid next occurrence for this task.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String occ = task.getOccurrenceStatusForDateKey(occKey);
             current = (occ != null && !occ.isEmpty()) ? occ : Task.STATUS_ACTIVE;
         } else {
-            current = (task.getStatus() != null && !task.getStatus().isEmpty()) ? task.getStatus() : Task.STATUS_ACTIVE;
+            current = (task.getStatus() != null && !task.getStatus().isEmpty())
+                    ? task.getStatus()
+                    : Task.STATUS_ACTIVE;
         }
 
         int checked = 0;
@@ -217,7 +284,7 @@ public class AllTasksActivity extends AppCompatActivity {
                     String newStatus = options[chosen[0]];
 
                     if (Task.TYPE_RECURRING.equals(task.getType())) {
-                        taskRepo.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
+                        taskRepo.updateTaskOccurrenceStatus(task.getId(), occKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
                             @Override
                             public void onSuccess(String message) { loadData(); }
                             @Override

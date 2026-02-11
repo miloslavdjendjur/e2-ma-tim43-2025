@@ -7,33 +7,43 @@ import java.util.Map;
 
 public class Task {
 
-    // Status values (možeš koristiti svuda kao string)
+    // Types
+    public static final String TYPE_SINGLE = "SINGLE";
+    public static final String TYPE_RECURRING = "RECURRING";
+
+    // Statuses
     public static final String STATUS_ACTIVE = "active";
     public static final String STATUS_DONE = "done";
     public static final String STATUS_PAUSED = "paused";
     public static final String STATUS_CANCELED = "canceled";
 
-    public static final String TYPE_SINGLE = "SINGLE";
-    public static final String TYPE_RECURRING = "RECURRING";
-
     private String id;
     private String name;
     private String description;
     private String categoryId;
-    private String status;     // za SINGLE ili fallback
+
+    // SINGLE status (whole task)
+    private String status;
+
     private String type;
     private String userId;
 
-    // XP Logika
+    // XP (your current logic)
     private int difficultyXp;
     private int importanceXp;
 
-    // Ponavljanje
+    // Recurrence
     private int interval;
     private String unit;
-    private Timestamp executionTime;
-    private Timestamp startDate;
-    private Timestamp endDate;
+    private Timestamp executionTime; // for SINGLE
+    private Timestamp startDate;     // for RECURRING
+    private Timestamp endDate;       // optional for RECURRING
+
+    /**
+     * For recurring tasks: status is per occurrence date.
+     * Key format: yyyy-MM-dd
+     * Example: {"2026-02-11":"done", "2026-02-12":"paused"}
+     */
     private Map<String, String> occurrenceStatuses;
 
     public Task() {}
@@ -42,9 +52,9 @@ public class Task {
         return difficultyXp + importanceXp;
     }
 
-    // Helpers za recurring
+    // ---- Occurrence status helpers ----
+
     public Map<String, String> getOccurrenceStatuses() {
-        if (occurrenceStatuses == null) occurrenceStatuses = new HashMap<>();
         return occurrenceStatuses;
     }
 
@@ -53,18 +63,18 @@ public class Task {
     }
 
     public String getOccurrenceStatusForDateKey(String dateKey) {
-        if (dateKey == null) return null;
+        if (dateKey == null || dateKey.isEmpty()) return null;
         if (occurrenceStatuses == null) return null;
         return occurrenceStatuses.get(dateKey);
     }
 
     public void setOccurrenceStatusForDateKey(String dateKey, String status) {
-        if (dateKey == null) return;
+        if (dateKey == null || dateKey.isEmpty()) return;
         if (occurrenceStatuses == null) occurrenceStatuses = new HashMap<>();
         occurrenceStatuses.put(dateKey, status);
     }
 
-    // Get/Set
+    // ---- Getters / Setters ----
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -84,8 +94,8 @@ public class Task {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public void setUserId(String userId) { this.userId = userId; }
     public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     public int getDifficultyXp() { return difficultyXp; }
     public void setDifficultyXp(int difficultyXp) { this.difficultyXp = difficultyXp; }

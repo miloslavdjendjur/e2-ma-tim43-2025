@@ -21,19 +21,28 @@ import java.util.Locale;
 
 public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
 
-    public interface OnTaskClick { void onClick(Task t); }
-    public interface OnTaskLongClick { void onLongClick(Task t); }
-    public interface OnQuickDoneToggle { void onToggle(Task t, boolean isDone); }
-    public interface OnStatusClick { void onClick(Task t); }
+    public static class DisplayItem {
+        public final Task task;
+        public final String occurrenceDateKey; // for recurring only (yyyy-MM-dd), null for single
+
+        public DisplayItem(Task task, String occurrenceDateKey) {
+            this.task = task;
+            this.occurrenceDateKey = occurrenceDateKey;
+        }
+    }
+
+    public interface OnTaskClick { void onClick(Task t, String occurrenceKey); }
+    public interface OnTaskLongClick { void onLongClick(Task t, String occurrenceKey); }
+    public interface OnQuickDoneToggle { void onToggle(Task t, String occurrenceKey, boolean isDone); }
+    public interface OnStatusClick { void onClick(Task t, String occurrenceKey); }
 
     private final OnTaskClick onTaskClick;
     private final OnTaskLongClick onTaskLongClick;
     private final OnQuickDoneToggle onQuickDoneToggle;
     private final OnStatusClick onStatusClick;
 
-    private List<Task> tasks = new ArrayList<>();
+    private List<DisplayItem> items = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
-    private String dateKeyForRecurring = null;
 
     public AllTasksAdapter(
             OnTaskClick onTaskClick,
@@ -47,10 +56,9 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
         this.onStatusClick = onStatusClick;
     }
 
-    public void setData(List<Task> tasks, List<Category> categories, String dateKeyForRecurring) {
-        this.tasks = tasks != null ? tasks : new ArrayList<>();
+    public void setData(List<DisplayItem> items, List<Category> categories) {
+        this.items = items != null ? items : new ArrayList<>();
         this.categories = categories != null ? categories : new ArrayList<>();
-        this.dateKeyForRecurring = dateKeyForRecurring;
         notifyDataSetChanged();
     }
 
@@ -63,7 +71,9 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
 
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
-        Task t = tasks.get(position);
+        DisplayItem item = items.get(position);
+        Task t = item.task;
+        String occKey = item.occurrenceDateKey;
 
         h.tvTitle.setText(t.getName() != null ? t.getName() : "");
 
@@ -73,6 +83,7 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
         if (Task.TYPE_SINGLE.equals(t.getType()) && t.getExecutionTime() != null) {
             time = timeFmt.format(t.getExecutionTime().toDate());
         } else if (Task.TYPE_RECURRING.equals(t.getType()) && t.getStartDate() != null) {
+            // prikazujemo vreme iz startDate (sat:min) jer je to “time of day” za recurring
             time = timeFmt.format(t.getStartDate().toDate());
         }
         h.tvTime.setText(time);
@@ -80,8 +91,12 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
         // status prikaza
         String status = Task.STATUS_ACTIVE;
         if (Task.TYPE_RECURRING.equals(t.getType())) {
-            String occ = t.getOccurrenceStatusForDateKey(dateKeyForRecurring);
-            status = (occ != null && !occ.isEmpty()) ? occ : Task.STATUS_ACTIVE;
+            if (occKey != null) {
+                String occ = t.getOccurrenceStatusForDateKey(occKey);
+                status = (occ != null && !occ.isEmpty()) ? occ : Task.STATUS_ACTIVE;
+            } else {
+                status = Task.STATUS_ACTIVE;
+            }
         } else {
             if (t.getStatus() != null && !t.getStatus().isEmpty()) status = t.getStatus();
         }
@@ -91,12 +106,12 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
         h.cbDone.setOnCheckedChangeListener(null);
         h.cbDone.setChecked(Task.STATUS_DONE.equals(status));
         h.cbDone.setOnClickListener(v -> {
-            if (onQuickDoneToggle != null) onQuickDoneToggle.onToggle(t, h.cbDone.isChecked());
+            if (onQuickDoneToggle != null) onQuickDoneToggle.onToggle(t, occKey, h.cbDone.isChecked());
         });
 
         // status click => full picker
         h.tvStatus.setOnClickListener(v -> {
-            if (onStatusClick != null) onStatusClick.onClick(t);
+            if (onStatusClick != null) onStatusClick.onClick(t, occKey);
         });
 
         // boja kategorije
@@ -111,17 +126,17 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
         }
 
         h.itemView.setOnClickListener(v -> {
-            if (onTaskClick != null) onTaskClick.onClick(t);
+            if (onTaskClick != null) onTaskClick.onClick(t, occKey);
         });
 
         h.itemView.setOnLongClickListener(v -> {
-            if (onTaskLongClick != null) onTaskLongClick.onLongClick(t);
+            if (onTaskLongClick != null) onTaskLongClick.onLongClick(t, occKey);
             return true;
         });
     }
 
     @Override
-    public int getItemCount() { return tasks.size(); }
+    public int getItemCount() { return items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
         View viewColor;

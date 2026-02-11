@@ -14,14 +14,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.data.model.Task;
 import com.example.data.repo.TaskRepository;
 import com.example.myapplication.R;
+import com.google.firebase.Timestamp;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Locale;
 
 public class TaskDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_TASK_ID = "EXTRA_TASK_ID";
-    public static final String EXTRA_DATE_KEY = "EXTRA_DATE_KEY"; // yyyy-MM-dd (koristi se za recurring)
+    public static final String EXTRA_DATE_KEY = "EXTRA_DATE_KEY"; // yyyy-MM-dd (for recurring)
 
     private final TaskRepository taskRepo = new TaskRepository();
 
@@ -30,7 +32,7 @@ public class TaskDetailActivity extends AppCompatActivity {
     private Button btnSaveStatus, btnEdit, btnDelete;
 
     private String taskId;
-    private String dateKey; // za recurring
+    private String dateKey;
     private Task loadedTask;
 
     @Override
@@ -113,7 +115,7 @@ public class TaskDetailActivity extends AppCompatActivity {
 
         tvXp.setText("XP: " + task.getTotalXp());
 
-        // current status (single vs recurring-date)
+        // current status: single vs recurring-date
         String current = Task.STATUS_ACTIVE;
         if (Task.TYPE_RECURRING.equals(task.getType())) {
             String occ = task.getOccurrenceStatusForDateKey(dateKey);
@@ -122,11 +124,29 @@ public class TaskDetailActivity extends AppCompatActivity {
             if (task.getStatus() != null && !task.getStatus().isEmpty()) current = task.getStatus();
         }
 
-        // set spinner selection
         String[] vals = {Task.STATUS_ACTIVE, Task.STATUS_DONE, Task.STATUS_PAUSED, Task.STATUS_CANCELED};
         int idx = 0;
         for (int i = 0; i < vals.length; i++) if (vals[i].equals(current)) idx = i;
         spinnerStatus.setSelection(idx);
+
+        boolean isFinished = false;
+
+        if (Task.TYPE_SINGLE.equals(task.getType())) {
+            isFinished = Task.STATUS_DONE.equals(task.getStatus());
+        } else if (Task.TYPE_RECURRING.equals(task.getType())) {
+            if (dateKey != null) {
+                String occStatus = task.getOccurrenceStatusForDateKey(dateKey);
+                isFinished = Task.STATUS_DONE.equals(occStatus);
+            }
+        }
+
+        if (isFinished) {
+            btnDelete.setEnabled(false);
+            btnDelete.setAlpha(0.4f); // vizuelno sivo
+        } else {
+            btnDelete.setEnabled(true);
+            btnDelete.setAlpha(1f);
+        }
     }
 
     private void saveStatus() {
@@ -173,39 +193,101 @@ public class TaskDetailActivity extends AppCompatActivity {
     }
 
     private void confirmDelete() {
+
         if (loadedTask == null) return;
 
+        // 🔒 RULE: Nije moguće obrisati završene zadatke
+
         if (Task.TYPE_SINGLE.equals(loadedTask.getType())) {
+
+            if (Task.STATUS_DONE.equals(loadedTask.getStatus())) {
+                Toast.makeText(this, "Finished tasks cannot be deleted.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             new AlertDialog.Builder(this)
                     .setTitle("Delete task")
                     .setMessage("Delete this task?")
                     .setPositiveButton("Delete", (d, w) -> doDelete())
                     .setNegativeButton("Cancel", null)
                     .show();
+
             return;
         }
 
-        // recurring: isto ponašanje kao u TasksActivity
-        new AlertDialog.Builder(this)
-                .setTitle("Delete recurring task")
-                .setItems(new CharSequence[]{
-                        "Delete this occurrence + future occurrences",
-                        "Delete entire series"
-                }, (dialog, which) -> {
-                    if (which == 0) {
-                        // Truncation se radi u TasksActivity logici (ovde radi jednostavno: vrati se nazad i obriši odatle),
-                        // ali da ne komplikujemo: pošalji usera nazad i neka uradi long-press delete.
-                        Toast.makeText(this, "Use Delete from calendar list to choose a date.", Toast.LENGTH_LONG).show();
-                    } else {
-                        new AlertDialog.Builder(this)
-                                .setTitle("Delete entire series")
-                                .setMessage("This will delete past and future occurrences. Continue?")
-                                .setPositiveButton("Delete", (d, w) -> doDelete())
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                    }
-                })
-                .show();
+        // RECURRING
+        if (Task.TYPE_RECURRING.equals(loadedTask.getType())) {
+
+            if (dateKey != null) {
+                String occStatus = loadedTask.getOccurrenceStatusForDateKey(dateKey);
+                if (Task.STATUS_DONE.equals(occStatus)) {
+                    Toast.makeText(this, "Finished occurrences cannot be deleted.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete recurring task")
+                    .setItems(new CharSequence[]{
+                            "Delete this occurrence + future occurrences",
+                            "Delete entire series"
+                    }, (dialog, which) -> {
+                        if (which == 0) {
+                            truncateFromDetailDateKey();
+                        } else {
+                            // dodatna zaštita: ako bilo koje ponavljanje ima DONE → ne briši seriju
+                            if (loadedTask.getOccurrenceStatuses() != null) {
+                                for (String s : loadedTask.getOccurrenceStatuses().values()) {
+                                    if (Task.STATUS_DONE.equals(s)) {
+                                        Toast.makeText(this, "Cannot delete series with finished occurrences.", Toast.LENGTH_LONG).show();
+                                        return;
+                                    }
+                                }
+                            }
+                            doDelete();
+                        }
+                    })
+                    .show();
+        }
+    }
+
+
+    private void truncateFromDetailDateKey() {
+        if (dateKey == null || dateKey.isEmpty()) {
+            Toast.makeText(this, "Missing date key.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // convert yyyy-MM-dd -> endDate = last millisecond of previous day
+        Calendar c = Calendar.getInstance();
+        try {
+            String[] parts = dateKey.split("-");
+            int y = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]) - 1;
+            int d = Integer.parseInt(parts[2]);
+
+            c.set(y, m, d, 0, 0, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            c.add(Calendar.MILLISECOND, -1);
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Bad date key.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Timestamp newEnd = new Timestamp(c.getTime());
+        taskRepo.truncateRecurringFromDate(taskId, newEnd, new TaskRepository.OnTaskActionEventListener() {
+            @Override
+            public void onSuccess(String message) {
+                Toast.makeText(TaskDetailActivity.this, message, Toast.LENGTH_SHORT).show();
+                finish();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(TaskDetailActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void doDelete() {
