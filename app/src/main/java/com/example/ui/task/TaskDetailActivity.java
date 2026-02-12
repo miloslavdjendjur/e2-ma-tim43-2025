@@ -12,7 +12,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.data.model.Task;
-import com.example.data.repo.TaskRepository;
+import com.example.data.service.TaskService; // Promenjeno
 import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
 
@@ -25,7 +25,8 @@ public class TaskDetailActivity extends AppCompatActivity {
     public static final String EXTRA_TASK_ID = "EXTRA_TASK_ID";
     public static final String EXTRA_DATE_KEY = "EXTRA_DATE_KEY"; // yyyy-MM-dd (for recurring)
 
-    private final TaskRepository taskRepo = new TaskRepository();
+    // Koristimo Service umesto Repository
+    private final TaskService taskService = new TaskService();
 
     private TextView tvName, tvDesc, tvType, tvTimeOrStart, tvEnd, tvInterval, tvXp;
     private Spinner spinnerStatus;
@@ -78,7 +79,7 @@ public class TaskDetailActivity extends AppCompatActivity {
             return;
         }
 
-        taskRepo.getTaskById(taskId, task -> {
+        taskService.getTaskById(taskId, task -> {
             if (task == null) {
                 Toast.makeText(this, "Task not found.", Toast.LENGTH_SHORT).show();
                 finish();
@@ -158,7 +159,8 @@ public class TaskDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, "Missing date key for recurring task.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            taskRepo.updateTaskOccurrenceStatus(taskId, dateKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
+            // Pozivamo Service
+            taskService.updateTaskOccurrenceStatus(taskId, dateKey, newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
                     Toast.makeText(TaskDetailActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -171,7 +173,8 @@ public class TaskDetailActivity extends AppCompatActivity {
                 }
             });
         } else {
-            taskRepo.updateTaskStatus(taskId, newStatus, new TaskRepository.OnTaskActionEventListener() {
+            // Pozivamo Service
+            taskService.updateTaskStatus(taskId, newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
                     Toast.makeText(TaskDetailActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -276,7 +279,7 @@ public class TaskDetailActivity extends AppCompatActivity {
         }
 
         Timestamp newEnd = new Timestamp(c.getTime());
-        taskRepo.truncateRecurringFromDate(taskId, newEnd, new TaskRepository.OnTaskActionEventListener() {
+        taskService.truncateRecurringFromDate(taskId, newEnd, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(TaskDetailActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -291,7 +294,7 @@ public class TaskDetailActivity extends AppCompatActivity {
     }
 
     private void doDelete() {
-        taskRepo.deleteTask(taskId, new TaskRepository.OnTaskActionEventListener() {
+        taskService.deleteTask(taskId, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(TaskDetailActivity.this, message, Toast.LENGTH_SHORT).show();

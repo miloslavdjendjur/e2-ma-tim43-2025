@@ -1,43 +1,54 @@
 package com.example.data.repo;
+
+import androidx.annotation.NonNull;
+
 import com.example.data.model.Category;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 
+import java.util.Collections;
 import java.util.List;
 
 public class CategoryRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final CollectionReference categoriesRef = db.collection("categories");
 
+    // Samo dohvata podatke, nema logike
     public void getAllCategories(OnCategoriesLoadedListener listener) {
         categoriesRef.get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 List<Category> categories = task.getResult().toObjects(Category.class);
                 listener.onLoaded(categories);
+            } else {
+                listener.onLoaded(Collections.emptyList());
             }
         });
     }
 
-    public void addCategory(Category category, OnCategoryActionEventListener listener) {
-        categoriesRef.whereEqualTo("colorHex", category.getColorHex()).get()
+    // Pomoćna metoda za Service da proveri da li boja postoji
+    public void findCategoryByColor(String hex, OnCategoriesLoadedListener listener) {
+        categoriesRef.whereEqualTo("colorHex", hex).get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        if (task.getResult() != null && task.getResult().isEmpty()) {
-                            categoriesRef.add(category)
-                                    .addOnSuccessListener(doc -> {
-                                        String id = doc.getId();
-                                        categoriesRef.document(id).update("id", id);
-                                        listener.onSuccess("Kategorija dodata!");
-                                    })
-                                    .addOnFailureListener(e -> listener.onError("Greška: " + e.getMessage()));
-                        } else {
-                            listener.onError("Ova boja je već zauzeta!");
-                        }
+                        List<Category> categories = task.getResult().toObjects(Category.class);
+                        listener.onLoaded(categories);
                     } else {
-                        listener.onError("Greška u bazi: " + task.getException().getMessage());
+                        listener.onLoaded(Collections.emptyList());
                     }
                 });
+    }
+
+    // Samo upisuje u bazu
+    public void addCategory(Category category, OnCategoryActionEventListener listener) {
+        categoriesRef.add(category)
+                .addOnSuccessListener(doc -> {
+                    String id = doc.getId();
+                    // Ažuriramo ID polje unutar dokumenta
+                    categoriesRef.document(id).update("id", id)
+                            .addOnSuccessListener(aVoid -> listener.onSuccess("Kategorija dodata!"))
+                            .addOnFailureListener(e -> listener.onError("Greška pri ažuriranju ID-a: " + e.getMessage()));
+                })
+                .addOnFailureListener(e -> listener.onError("Greška: " + e.getMessage()));
     }
 
     public void deleteCategory(String categoryId, OnCategoryActionEventListener listener) {
@@ -46,6 +57,7 @@ public class CategoryRepository {
                 .addOnFailureListener(e -> listener.onError("Greška pri brisanju."));
     }
 
+    // Interfejsi
     public interface OnCategoriesLoadedListener {
         void onLoaded(List<Category> categories);
     }

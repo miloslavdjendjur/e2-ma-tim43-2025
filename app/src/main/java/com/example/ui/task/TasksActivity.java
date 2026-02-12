@@ -12,8 +12,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.data.model.Category;
 import com.example.data.model.Task;
-import com.example.data.repo.CategoryRepository;
-import com.example.data.repo.TaskRepository;
+import com.example.data.service.CategoryService; // Promenjeno
+import com.example.data.service.TaskService;
 import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
 
@@ -28,8 +28,9 @@ public class TasksActivity extends AppCompatActivity {
     private RecyclerView rvTasks;
     private TaskAdapter adapter;
 
-    private final TaskRepository taskRepo = new TaskRepository();
-    private final CategoryRepository catRepo = new CategoryRepository();
+    // Koristimo Servise za oba entiteta
+    private final TaskService taskService = new TaskService();
+    private final CategoryService categoryService = new CategoryService(); // Promenjeno
 
     private List<Task> allTasks = new ArrayList<>();
     private List<Category> allCategories = new ArrayList<>();
@@ -102,9 +103,10 @@ public class TasksActivity extends AppCompatActivity {
     }
 
     private void loadData() {
-        catRepo.getAllCategories(categories -> {
+        // Poziv preko servisa
+        categoryService.getAllCategories(categories -> {
             allCategories = (categories != null) ? categories : new ArrayList<>();
-            taskRepo.getTasks(tasks -> {
+            taskService.getTasks(tasks -> {
                 allTasks = (tasks != null) ? tasks : new ArrayList<>();
                 filterTasksByDate(selectedYear, selectedMonth, selectedDayOfMonth);
             });
@@ -118,7 +120,7 @@ public class TasksActivity extends AppCompatActivity {
         }
         Intent i = new Intent(this, TaskDetailActivity.class);
         i.putExtra(TaskDetailActivity.EXTRA_TASK_ID, task.getId());
-        i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, selectedDateKey()); // important for recurring
+        i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, selectedDateKey());
         startActivity(i);
     }
 
@@ -130,7 +132,7 @@ public class TasksActivity extends AppCompatActivity {
 
         if (Task.TYPE_RECURRING.equals(task.getType())) {
             String dateKey = selectedDateKey();
-            taskRepo.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskRepository.OnTaskActionEventListener() {
+            taskService.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
                     Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -143,7 +145,7 @@ public class TasksActivity extends AppCompatActivity {
                 }
             });
         } else {
-            taskRepo.updateTaskStatus(task.getId(), newStatus, new TaskRepository.OnTaskActionEventListener() {
+            taskService.updateTaskStatus(task.getId(), newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
                     Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -170,15 +172,11 @@ public class TasksActivity extends AppCompatActivity {
     }
 
     private void confirmDelete(Task task) {
-
         if (task.getId() == null || task.getId().isEmpty()) {
             Toast.makeText(this, "Task id missing - can't delete.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 🔒 RULE: Nije moguće obrisati završene zadatke
-
-        // SINGLE
         if (Task.TYPE_SINGLE.equals(task.getType())) {
             if (Task.STATUS_DONE.equals(task.getStatus())) {
                 Toast.makeText(this, "Finished tasks cannot be deleted.", Toast.LENGTH_LONG).show();
@@ -186,10 +184,8 @@ public class TasksActivity extends AppCompatActivity {
             }
         }
 
-        // RECURRING (provera za konkretno ponavljanje u kalendaru)
         if (Task.TYPE_RECURRING.equals(task.getType())) {
-            String dateKey = selectedDateKey(); // već imaš ovu metodu
-
+            String dateKey = selectedDateKey();
             String occStatus = task.getOccurrenceStatusForDateKey(dateKey);
             if (Task.STATUS_DONE.equals(occStatus)) {
                 Toast.makeText(this, "Finished occurrences cannot be deleted.", Toast.LENGTH_LONG).show();
@@ -197,7 +193,6 @@ public class TasksActivity extends AppCompatActivity {
             }
         }
 
-        // Ako nije finished → dozvoli delete
         if (Task.TYPE_RECURRING.equals(task.getType())) {
             new AlertDialog.Builder(this)
                     .setTitle("Delete recurring task")
@@ -216,9 +211,7 @@ public class TasksActivity extends AppCompatActivity {
         }
     }
 
-
     private void truncateRecurringFromSelectedDate(Task task) {
-        // endDate = last millisecond of PREVIOUS day (so selected date + future disappear)
         Calendar cut = Calendar.getInstance();
         cut.set(selectedYear, selectedMonth, selectedDayOfMonth, 0, 0, 0);
         cut.set(Calendar.MILLISECOND, 0);
@@ -226,7 +219,7 @@ public class TasksActivity extends AppCompatActivity {
 
         Timestamp newEnd = new Timestamp(cut.getTime());
 
-        taskRepo.truncateRecurringFromDate(task.getId(), newEnd, new TaskRepository.OnTaskActionEventListener() {
+        taskService.truncateRecurringFromDate(task.getId(), newEnd, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -250,7 +243,7 @@ public class TasksActivity extends AppCompatActivity {
     }
 
     private void deleteTask(String taskId) {
-        taskRepo.deleteTask(taskId, new TaskRepository.OnTaskActionEventListener() {
+        taskService.deleteTask(taskId, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -272,8 +265,6 @@ public class TasksActivity extends AppCompatActivity {
         targetCal.set(Calendar.MILLISECOND, 0);
 
         for (Task task : allTasks) {
-
-            // SINGLE
             if (Task.TYPE_SINGLE.equals(task.getType()) && task.getExecutionTime() != null) {
                 Calendar taskCal = Calendar.getInstance();
                 taskCal.setTime(task.getExecutionTime().toDate());
@@ -281,7 +272,6 @@ public class TasksActivity extends AppCompatActivity {
                 continue;
             }
 
-            // RECURRING
             if (Task.TYPE_RECURRING.equals(task.getType()) && task.getStartDate() != null) {
                 Calendar startCal = Calendar.getInstance();
                 startCal.setTime(task.getStartDate().toDate());

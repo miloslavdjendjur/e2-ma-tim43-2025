@@ -3,12 +3,18 @@ package com.example.ui.category;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+
 import com.example.data.model.Category;
-import com.example.data.repo.CategoryRepository;
+import com.example.data.repo.CategoryRepository; // Treba nam zbog interfejsa listenera
+import com.example.data.service.CategoryService; // Koristimo Service
+
 import java.util.List;
 
 public class CategoryViewModel extends ViewModel {
-    private final CategoryRepository repository = new CategoryRepository();
+
+    // Koristimo Service
+    private final CategoryService service = new CategoryService();
+
     private final MutableLiveData<List<Category>> categories = new MutableLiveData<>();
     private final MutableLiveData<String> statusMessage = new MutableLiveData<>();
 
@@ -21,17 +27,16 @@ public class CategoryViewModel extends ViewModel {
     }
 
     public void fetchCategories() {
-        repository.getAllCategories(categories::setValue);
+        service.getAllCategories(categories::setValue);
     }
 
     public void addNewCategory(String name, String color) {
-        // Generišemo ID
-        Category newCat = new Category(null, name, color);
-        repository.addCategory(newCat, new CategoryRepository.OnCategoryActionEventListener() {
+        // Sva logika oko provere duplikata i validacije je sada u servisu
+        service.addCategory(name, color, new CategoryRepository.OnCategoryActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 statusMessage.setValue(message);
-                fetchCategories(); // refresh
+                fetchCategories(); // osveži listu
             }
 
             @Override
@@ -42,7 +47,7 @@ public class CategoryViewModel extends ViewModel {
     }
 
     public void deleteCategory(String categoryId) {
-        repository.deleteCategory(categoryId, new CategoryRepository.OnCategoryActionEventListener() {
+        service.deleteCategory(categoryId, new CategoryRepository.OnCategoryActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 statusMessage.setValue(message);

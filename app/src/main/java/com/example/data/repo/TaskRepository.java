@@ -17,6 +17,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data-layer repository for tasks.
+ *
+ * IMPORTANT: Business rules (XP quotas, awarding XP, etc.) live in TaskService.
+ * This class is intentionally kept focused on CRUD + permission checks.
+ */
 public class TaskRepository {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -27,7 +33,7 @@ public class TaskRepository {
         return user != null ? user.getUid() : null;
     }
 
-    public void addTask(Task task, OnTaskActionEventListener listener) {
+    public void addTask(@NonNull Task task, @NonNull OnTaskActionEventListener listener) {
         String uid = getUserId();
         if (uid == null) {
             listener.onError("User not logged in.");
@@ -36,15 +42,11 @@ public class TaskRepository {
 
         task.setUserId(uid);
 
-        // default statuses
-        if (task.getType() == null || task.getType().isEmpty()) {
-            task.setType(Task.TYPE_SINGLE);
-        }
-        if (task.getStatus() == null || task.getStatus().isEmpty()) {
-            task.setStatus(Task.STATUS_ACTIVE);
-        }
+        // defaults
+        if (task.getType() == null || task.getType().isEmpty()) task.setType(Task.TYPE_SINGLE);
+        if (task.getStatus() == null || task.getStatus().isEmpty()) task.setStatus(Task.STATUS_ACTIVE);
 
-        // Ensure map exists for recurring (optional but nice)
+        // recurring convenience
         if (Task.TYPE_RECURRING.equals(task.getType()) && task.getOccurrenceStatuses() == null) {
             task.setOccurrenceStatuses(new HashMap<>());
         }
@@ -52,14 +54,15 @@ public class TaskRepository {
         tasksRef.add(task)
                 .addOnSuccessListener(documentReference -> {
                     String id = documentReference.getId();
-                    tasksRef.document(id).update("id", id)
-                            .addOnSuccessListener(aVoid -> listener.onSuccess("Task saved successfully!"))
+                    tasksRef.document(id)
+                            .update("id", id)
+                            .addOnSuccessListener(aVoid -> listener.onSuccess("Task saved!"))
                             .addOnFailureListener(e -> listener.onError("Save error: " + e.getMessage()));
                 })
                 .addOnFailureListener(e -> listener.onError("Save error: " + e.getMessage()));
     }
 
-    public void getTasks(OnTasksLoadedListener listener) {
+    public void getTasks(@NonNull OnTasksLoadedListener listener) {
         String uid = getUserId();
         if (uid == null) {
             listener.onLoaded(Collections.emptyList());
@@ -68,17 +71,14 @@ public class TaskRepository {
 
         tasksRef.whereEqualTo("userId", uid)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Task> tasks = queryDocumentSnapshots.toObjects(Task.class);
-                    listener.onLoaded(tasks);
-                })
+                .addOnSuccessListener(qs -> listener.onLoaded(qs.toObjects(Task.class)))
                 .addOnFailureListener(e -> {
                     Log.e("TaskRepository", "getTasks failed", e);
                     listener.onLoaded(Collections.emptyList());
                 });
     }
 
-    public void getTaskById(@NonNull String taskId, OnTaskLoadedListener listener) {
+    public void getTaskById(@NonNull String taskId, @NonNull OnTaskLoadedListener listener) {
         String uid = getUserId();
         if (uid == null) {
             listener.onLoaded(null);
@@ -103,9 +103,9 @@ public class TaskRepository {
     }
 
     /**
-     * IMPORTANT: use merge so you don't wipe occurrenceStatuses when editing base fields.
+     * IMPORTANT: merge so you don't wipe occurrenceStatuses when editing base fields.
      */
-    public void updateTask(@NonNull Task task, OnTaskActionEventListener listener) {
+    public void updateTask(@NonNull Task task, @NonNull OnTaskActionEventListener listener) {
         String uid = getUserId();
         if (uid == null) {
             listener.onError("User not logged in.");
@@ -124,14 +124,15 @@ public class TaskRepository {
                 .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
     }
 
-    public void deleteTask(@NonNull String taskId, OnTaskActionEventListener listener) {
+    public void deleteTask(@NonNull String taskId, @NonNull OnTaskActionEventListener listener) {
         String uid = getUserId();
         if (uid == null) {
             listener.onError("User not logged in.");
             return;
         }
 
-        tasksRef.document(taskId).get()
+        tasksRef.document(taskId)
+                .get()
                 .addOnSuccessListener(snapshot -> {
                     if (!snapshot.exists()) {
                         listener.onError("Task not found.");
@@ -151,61 +152,13 @@ public class TaskRepository {
                 .addOnFailureListener(e -> listener.onError("Delete error: " + e.getMessage()));
     }
 
-    public void updateTaskStatus(String taskId, String newStatus, OnTaskActionEventListener listener) {
-        tasksRef.document(taskId).update("status", newStatus)
-                .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: " + newStatus))
-                .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
-    }
-
     /**
-     * For recurring tasks: update status for a specific date occurrence (yyyy-MM-dd).
-     * Stored in: occurrenceStatuses.{dateKey} = newStatus
-     */
-    public void updateTaskOccurrenceStatus(
-            @NonNull String taskId,
-            @NonNull String dateKey,
-            @NonNull String newStatus,
-            OnTaskActionEventListener listener
-    ) {
-        String uid = getUserId();
-        if (uid == null) {
-            listener.onError("User not logged in.");
-            return;
-        }
-
-        tasksRef.document(taskId).get()
-                .addOnSuccessListener(snapshot -> {
-                    if (!snapshot.exists()) {
-                        listener.onError("Task not found.");
-                        return;
-                    }
-
-                    Task t = snapshot.toObject(Task.class);
-                    if (t == null || t.getUserId() == null || !uid.equals(t.getUserId())) {
-                        listener.onError("You don't have permission to modify this task.");
-                        return;
-                    }
-
-                    String fieldPath = "occurrenceStatuses." + dateKey;
-                    Map<String, Object> update = new HashMap<>();
-                    update.put(fieldPath, newStatus);
-
-                    tasksRef.document(taskId)
-                            .update(update)
-                            .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: " + newStatus))
-                            .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
-                })
-                .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
-    }
-
-    /**
-     * Spec: delete one occurrence => remove future occurrences, keep past occurrences visible.
-     * Implementation: set endDate to cut-off timestamp.
+     * Cuts a recurring series by setting endDate.
      */
     public void truncateRecurringFromDate(
             @NonNull String taskId,
             @NonNull Timestamp newEndDate,
-            OnTaskActionEventListener listener
+            @NonNull OnTaskActionEventListener listener
     ) {
         String uid = getUserId();
         if (uid == null) {
@@ -213,7 +166,8 @@ public class TaskRepository {
             return;
         }
 
-        tasksRef.document(taskId).get()
+        tasksRef.document(taskId)
+                .get()
                 .addOnSuccessListener(snapshot -> {
                     if (!snapshot.exists()) {
                         listener.onError("Task not found.");
@@ -232,6 +186,39 @@ public class TaskRepository {
                 })
                 .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
     }
+
+    /**
+     * Raw update helper (used by service).
+     */
+    public void updateFields(@NonNull String taskId, @NonNull Map<String, Object> updates, @NonNull OnTaskActionEventListener listener) {
+        String uid = getUserId();
+        if (uid == null) {
+            listener.onError("User not logged in.");
+            return;
+        }
+
+        tasksRef.document(taskId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!snapshot.exists()) {
+                        listener.onError("Task not found.");
+                        return;
+                    }
+                    Task t = snapshot.toObject(Task.class);
+                    if (t == null || t.getUserId() == null || !uid.equals(t.getUserId())) {
+                        listener.onError("You don't have permission to modify this task.");
+                        return;
+                    }
+
+                    tasksRef.document(taskId)
+                            .update(updates)
+                            .addOnSuccessListener(aVoid -> listener.onSuccess("Updated."))
+                            .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+                })
+                .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
+    }
+
+    // ---- callbacks ----
 
     public interface OnTasksLoadedListener {
         void onLoaded(List<Task> tasks);

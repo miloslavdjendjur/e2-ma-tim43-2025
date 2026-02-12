@@ -41,15 +41,53 @@ public class Task {
 
     /**
      * For recurring tasks: status is per occurrence date.
-     * Key format: yyyy-MM-dd
-     * Example: {"2026-02-11":"done", "2026-02-12":"paused"}
+     * Key format: yyyy-MM-dd : status
      */
     private Map<String, String> occurrenceStatuses;
+
+    /**
+     * XP processing flags (to prevent double-awarding if user toggles status back/forth).
+     * SINGLE: xpProcessed == true means we already processed XP for this task when it was first set to DONE.
+     * RECURRING: occurrenceXpProcessed[dateKey] == true means we processed XP for that occurrence.
+     */
+    private Boolean xpProcessed;
+    private Map<String, Boolean> occurrenceXpProcessed;
 
     public Task() {}
 
     public int getTotalXp() {
         return difficultyXp + importanceXp;
+    }
+
+    // ---- XP processed helpers ----
+
+    public boolean isXpProcessed() {
+        return xpProcessed != null && xpProcessed;
+    }
+
+    public void setXpProcessed(Boolean xpProcessed) {
+        this.xpProcessed = xpProcessed;
+    }
+
+    public Map<String, Boolean> getOccurrenceXpProcessed() {
+        return occurrenceXpProcessed;
+    }
+
+    public void setOccurrenceXpProcessed(Map<String, Boolean> occurrenceXpProcessed) {
+        this.occurrenceXpProcessed = occurrenceXpProcessed;
+    }
+
+    public boolean isOccurrenceXpProcessed(String dateKey) {
+        if (dateKey == null || dateKey.isEmpty()) return false;
+        if (occurrenceXpProcessed == null) return false;
+        Boolean v = occurrenceXpProcessed.get(dateKey);
+        return v != null && v;
+    }
+
+    public void setOccurrenceXpProcessed(String dateKey, boolean processed) {
+        if (dateKey == null || dateKey.isEmpty()) return;
+        if (occurrenceXpProcessed == null) occurrenceXpProcessed = new HashMap<>();
+        occurrenceXpProcessed.put(dateKey, processed);
     }
 
     // ---- Occurrence status helpers ----

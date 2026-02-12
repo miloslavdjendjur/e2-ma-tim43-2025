@@ -19,8 +19,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.myapplication.R;
 import com.example.data.model.Category;
 import com.example.data.model.Task;
-import com.example.data.repo.CategoryRepository;
-import com.example.data.repo.TaskRepository;
+import com.example.data.service.CategoryService; // Promenjeno
+import com.example.data.service.TaskService;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -39,18 +39,17 @@ public class CreateTaskActivity extends AppCompatActivity {
     private TextView tvSelectedDate, tvSelectedTime, tvSelectedEndDate;
     private Button btnPickDate, btnPickTime, btnPickEndDate;
 
-    private final CategoryRepository categoryRepo = new CategoryRepository();
-    private final TaskRepository taskRepo = new TaskRepository();
+    // Koristimo Servise
+    private final CategoryService categoryService = new CategoryService(); // Promenjeno
+    private final TaskService taskService = new TaskService();
 
     private List<Category> loadedCategories = new ArrayList<>();
 
     private Calendar selectedDate = Calendar.getInstance();
     private Calendar selectedEndDate = null;
 
-    // EDIT mode
     private String editingTaskId = null;
     private Task editingTask = null;
-
     private boolean taskLoadedForEdit = false;
 
     @Override
@@ -60,11 +59,8 @@ public class CreateTaskActivity extends AppCompatActivity {
 
         initViews();
         setupUnitSpinner();
-
-        // inicijalni prikaz da nije prazno
         updateDateTimeLabels();
 
-        // da li smo u edit modu?
         editingTaskId = getIntent().getStringExtra(EXTRA_TASK_ID);
 
         loadCategories();
@@ -91,22 +87,16 @@ public class CreateTaskActivity extends AppCompatActivity {
         etName = findViewById(R.id.etTaskName);
         etDesc = findViewById(R.id.etTaskDescription);
         etInterval = findViewById(R.id.etInterval);
-
         spinnerCategory = findViewById(R.id.spinnerCategory);
         spinnerUnit = findViewById(R.id.spinnerUnit);
-
         rgDifficulty = findViewById(R.id.rgDifficulty);
         rgImportance = findViewById(R.id.rgImportance);
-
         switchRecurring = findViewById(R.id.switchRecurring);
         layoutRecurring = findViewById(R.id.layoutRecurringOptions);
-
         tvSelectedDate = findViewById(R.id.tvSelectedDate);
         btnPickDate = findViewById(R.id.btnPickDate);
-
         tvSelectedTime = findViewById(R.id.tvSelectedTime);
         btnPickTime = findViewById(R.id.btnPickTime);
-
         tvSelectedEndDate = findViewById(R.id.tvSelectedEndDate);
         btnPickEndDate = findViewById(R.id.btnPickEndDate);
     }
@@ -115,7 +105,6 @@ public class CreateTaskActivity extends AppCompatActivity {
         int day = selectedDate.get(Calendar.DAY_OF_MONTH);
         int month = selectedDate.get(Calendar.MONTH) + 1;
         int year = selectedDate.get(Calendar.YEAR);
-
         int hour = selectedDate.get(Calendar.HOUR_OF_DAY);
         int minute = selectedDate.get(Calendar.MINUTE);
 
@@ -136,10 +125,8 @@ public class CreateTaskActivity extends AppCompatActivity {
         new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             int hour = targetCal.get(Calendar.HOUR_OF_DAY);
             int minute = targetCal.get(Calendar.MINUTE);
-
             targetCal.set(year, month, dayOfMonth, hour, minute, 0);
             targetCal.set(Calendar.MILLISECOND, 0);
-
             targetTv.setText(label + ": " + dayOfMonth + "/" + (month + 1) + "/" + year);
             updateDateTimeLabels();
         }, targetCal.get(Calendar.YEAR), targetCal.get(Calendar.MONTH), targetCal.get(Calendar.DAY_OF_MONTH)).show();
@@ -153,7 +140,6 @@ public class CreateTaskActivity extends AppCompatActivity {
                     selectedDate.set(Calendar.MINUTE, minute);
                     selectedDate.set(Calendar.SECOND, 0);
                     selectedDate.set(Calendar.MILLISECOND, 0);
-
                     tvSelectedTime.setText(String.format(Locale.getDefault(), "Time: %02d:%02d", hourOfDay, minute));
                 },
                 selectedDate.get(Calendar.HOUR_OF_DAY),
@@ -164,7 +150,8 @@ public class CreateTaskActivity extends AppCompatActivity {
     }
 
     private void loadCategories() {
-        categoryRepo.getAllCategories(categories -> {
+        // Poziv preko servisa
+        categoryService.getAllCategories(categories -> {
             loadedCategories = categories != null ? categories : new ArrayList<>();
 
             List<String> names = new ArrayList<>();
@@ -174,7 +161,6 @@ public class CreateTaskActivity extends AppCompatActivity {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinnerCategory.setAdapter(adapter);
 
-            // edit mode: ucitaj task tek kad imamo spinner
             if (editingTaskId != null && !taskLoadedForEdit) {
                 loadTaskForEdit(editingTaskId);
             }
@@ -189,7 +175,7 @@ public class CreateTaskActivity extends AppCompatActivity {
     }
 
     private void loadTaskForEdit(String taskId) {
-        taskRepo.getTaskById(taskId, task -> {
+        taskService.getTaskById(taskId, task -> {
             taskLoadedForEdit = true;
             if (task == null) {
                 Toast.makeText(this, "Task not found (or no permission).", Toast.LENGTH_SHORT).show();
@@ -204,7 +190,6 @@ public class CreateTaskActivity extends AppCompatActivity {
     private void populateFormFromTask(Task task) {
         etName.setText(task.getName() != null ? task.getName() : "");
         etDesc.setText(task.getDescription() != null ? task.getDescription() : "");
-
         checkDifficulty(task.getDifficultyXp());
         checkImportance(task.getImportanceXp());
 
@@ -221,28 +206,22 @@ public class CreateTaskActivity extends AppCompatActivity {
         if ("RECURRING".equals(task.getType())) {
             switchRecurring.setChecked(true);
             layoutRecurring.setVisibility(View.VISIBLE);
-
             etInterval.setText(String.valueOf(task.getInterval()));
-
             String unit = task.getUnit() != null ? task.getUnit() : "Day";
             if (unit.contains("Week")) spinnerUnit.setSelection(1);
             else spinnerUnit.setSelection(0);
 
             if (task.getStartDate() != null) selectedDate.setTime(task.getStartDate().toDate());
-
             if (task.getEndDate() != null) {
                 selectedEndDate = Calendar.getInstance();
                 selectedEndDate.setTime(task.getEndDate().toDate());
             } else selectedEndDate = null;
-
         } else {
             switchRecurring.setChecked(false);
             layoutRecurring.setVisibility(View.GONE);
-
             if (task.getExecutionTime() != null) selectedDate.setTime(task.getExecutionTime().toDate());
             selectedEndDate = null;
         }
-
         updateDateTimeLabels();
     }
 
@@ -266,7 +245,7 @@ public class CreateTaskActivity extends AppCompatActivity {
         Task newTask = buildTaskFromForm(null);
         if (newTask == null) return;
 
-        taskRepo.addTask(newTask, new TaskRepository.OnTaskActionEventListener() {
+        taskService.addTask(newTask, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(CreateTaskActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -282,13 +261,11 @@ public class CreateTaskActivity extends AppCompatActivity {
 
     private void updateTask() {
         if (editingTaskId == null) return;
-
         Task updated = buildTaskFromForm(editingTask);
         if (updated == null) return;
-
         updated.setId(editingTaskId);
 
-        taskRepo.updateTask(updated, new TaskRepository.OnTaskActionEventListener() {
+        taskService.updateTask(updated, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(CreateTaskActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -304,10 +281,7 @@ public class CreateTaskActivity extends AppCompatActivity {
 
     private Task buildTaskFromForm(Task baseTask) {
         String name = etName.getText().toString().trim();
-        if (name.isEmpty()) {
-            etName.setError("Name is required");
-            return null;
-        }
+        if (name.isEmpty()) { etName.setError("Name is required"); return null; }
 
         if (spinnerCategory.getSelectedItemPosition() == AdapterView.INVALID_POSITION || loadedCategories.isEmpty()) {
             Toast.makeText(this, "Please select a category", Toast.LENGTH_SHORT).show();
@@ -315,8 +289,6 @@ public class CreateTaskActivity extends AppCompatActivity {
         }
 
         Task t = new Task();
-
-        // ako editujemo - zadrzi status (done/active)
         if (baseTask != null) t.setStatus(baseTask.getStatus() != null ? baseTask.getStatus() : "active");
         else t.setStatus("active");
 
@@ -328,53 +300,28 @@ public class CreateTaskActivity extends AppCompatActivity {
 
         if (switchRecurring.isChecked()) {
             t.setType("RECURRING");
-
             String intervalStr = etInterval.getText().toString().trim();
-            if (intervalStr.isEmpty()) {
-                etInterval.setError("Interval is required for recurring tasks");
-                return null;
-            }
-
+            if (intervalStr.isEmpty()) { etInterval.setError("Required"); return null; }
             int interval;
-            try {
-                interval = Integer.parseInt(intervalStr);
-                if (interval <= 0) throw new NumberFormatException();
-            } catch (Exception e) {
-                etInterval.setError("Interval must be a positive number");
-                return null;
-            }
+            try { interval = Integer.parseInt(intervalStr); if (interval <= 0) throw new NumberFormatException(); }
+            catch (Exception e) { etInterval.setError("Must be positive"); return null; }
 
             t.setInterval(interval);
-
             if (spinnerUnit.getSelectedItem() != null) t.setUnit(spinnerUnit.getSelectedItem().toString());
             else t.setUnit("Day");
 
             t.setStartDate(new com.google.firebase.Timestamp(selectedDate.getTime()));
-
             if (selectedEndDate != null) {
                 Calendar end = (Calendar) selectedEndDate.clone();
-                end.set(Calendar.HOUR_OF_DAY, 23);
-                end.set(Calendar.MINUTE, 59);
-                end.set(Calendar.SECOND, 59);
-                end.set(Calendar.MILLISECOND, 999);
+                end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59); end.set(Calendar.SECOND, 59); end.set(Calendar.MILLISECOND, 999);
                 t.setEndDate(new com.google.firebase.Timestamp(end.getTime()));
-            } else {
-                t.setEndDate(null);
-            }
-
+            } else t.setEndDate(null);
             t.setExecutionTime(null);
-
         } else {
             t.setType("SINGLE");
-
             t.setExecutionTime(new com.google.firebase.Timestamp(selectedDate.getTime()));
-
-            t.setStartDate(null);
-            t.setEndDate(null);
-            t.setInterval(0);
-            t.setUnit(null);
+            t.setStartDate(null); t.setEndDate(null); t.setInterval(0); t.setUnit(null);
         }
-
         return t;
     }
 
