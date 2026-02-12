@@ -12,6 +12,8 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.data.repo.AuthRepository;
 import com.example.ui.auth.LoginActivity;
+import com.example.ui.equipment.EquipmentStoreActivity;
+import com.example.ui.equipment.MyEquipmentActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,6 +45,19 @@ public class MainActivity extends AppCompatActivity {
         Button btnLevel = findViewById(R.id.btnLevel);
         btnLevel.setOnClickListener(v ->
                 startActivity(new Intent(this, com.example.ui.level.LevelProgressActivity.class)));
+
+        Button btnStore = findViewById(R.id.btnOpenStore);
+        Button btnEquip = findViewById(R.id.btnOpenEquipment);
+
+        btnStore.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, EquipmentStoreActivity.class);
+            startActivity(intent);
+        });
+
+        btnEquip.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, MyEquipmentActivity.class);
+            startActivity(intent);
+        });
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
