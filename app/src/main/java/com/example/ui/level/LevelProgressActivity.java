@@ -1,18 +1,18 @@
 package com.example.ui.level;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.data.model.TitleBook;
 import com.example.data.model.User;
 import com.example.data.repo.UserRepository;
 import com.example.data.service.LevelingService;
-import com.example.data.model.TitleBook;
 import com.example.myapplication.R;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -21,7 +21,7 @@ public class LevelProgressActivity extends AppCompatActivity {
 
     private TextView tvLevel, tvTitle, tvXp, tvNext, tvPp;
     private ProgressBar progress;
-    private Button btnDebugAddXp; // DEMO
+    private Button btnDebugAddXp;
 
     private final UserRepository repo = new UserRepository();
 
@@ -39,7 +39,8 @@ public class LevelProgressActivity extends AppCompatActivity {
 
         load();
 
-        btnDebugAddXp.setOnClickListener(v -> addXpDemo(120)); // dodaj 120 XP
+        // DEMO: dodaj 120 XP koristeći istu logiku kao i TaskService
+        btnDebugAddXp.setOnClickListener(v -> addXpDemo(120));
     }
 
     private void load() {
@@ -50,10 +51,7 @@ public class LevelProgressActivity extends AppCompatActivity {
         User u = ds.toObject(User.class);
         if (u == null) return;
 
-        int threshold = 200;
-        for (int i = 1; i < u.level; i++) {
-            threshold = LevelingService.nextXpThreshold(threshold);
-        }
+        int threshold = LevelingService.getThresholdForLevel(u.level);
 
         tvLevel.setText("Nivo " + u.level);
         tvTitle.setText(TitleBook.titleFor(u.level));
@@ -61,43 +59,34 @@ public class LevelProgressActivity extends AppCompatActivity {
         tvNext.setText("Sledeći prag: " + threshold);
         tvPp.setText("PP: " + u.pp);
 
-        int prog = (threshold == 0) ? 0 : (int) Math.max(0, Math.min(100, (u.xp * 100 / threshold)));
+        int prog = (threshold == 0) ? 0 : (int) Math.max(0, Math.min(100, (u.xp * 100L / threshold)));
         progress.setProgress(prog);
     }
 
-    /** DEMO: dodaj XP */
-    private void addXpDemo(long gained) {
+    /**
+     * DEMO: Simulira dodavanje XP-a (kao da je završen task)
+     * Ali radi direktno na bazi (bez task check-a), čisto za testiranje Levelinga.
+     */
+    private void addXpDemo(int gained) {
         repo.getCurrentUser().addOnSuccessListener(ds -> {
             User u = ds.toObject(User.class);
             if (u == null) return;
 
-            int threshold = 200;
-            for (int i = 1; i < u.level; i++) {
-                threshold = LevelingService.nextXpThreshold(threshold);
-            }
+            // Koristimo servisnu logiku!
+            boolean leveledUp = LevelingService.addXp(u, gained);
 
-            long xp = u.xp + gained;
-
-            while (xp >= threshold) {
-                xp -= threshold;
-                u.level++;
-
-                if (u.pp == 0) {
-                    u.pp = 40;
-                } else {
-                    u.pp = LevelingService.nextPp(u.pp);
-                }
-
-                u.title = TitleBook.titleFor(u.level);
-                threshold = LevelingService.nextXpThreshold(threshold);
-
-            }
-            u.xp = xp;
-
+            // Čuvamo nazad u bazu
             FirebaseFirestore.getInstance()
                     .collection("users").document(u.uid)
-                    .update("xp", u.xp, "level", u.level, "pp", u.pp, "title", u.title)
-                    .addOnSuccessListener(v -> load());
+                    .set(u) // .set overwrite-uje, ili koristi .update ako želiš parcijalno
+                    .addOnSuccessListener(v -> {
+                        load();
+                        if (leveledUp) {
+                            Toast.makeText(this, "Level Up! Novi nivo: " + u.level, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(this, "Dodato " + gained + " XP", Toast.LENGTH_SHORT).show();
+                        }
+                    });
         });
     }
 }

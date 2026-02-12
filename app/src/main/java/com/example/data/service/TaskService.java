@@ -4,12 +4,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.data.model.Task;
+import com.example.data.model.User;
 import com.example.data.repo.TaskRepository;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 
@@ -23,7 +25,7 @@ import java.util.Map;
  * Business layer for tasks.
  *
  * - Implements spec 2.1 XP awarding with quotas.
- * - Keeps UI clean (Activities/Adapters should not contain business logic).
+ * - Uses LevelingService to update User profile on task completion.
  */
 public class TaskService {
 
@@ -97,17 +99,6 @@ public class TaskService {
 
     // ---------------- XP quota logic (spec 2.1) ----------------
 
-    /**
-     * Map a task to a quota bucket from the spec.
-     *
-     * Rules we implement (based on the list in spec):
-     * - Importance "Special" (100 XP) -> SPECIAL (monthly 1)
-     * - Difficulty "Extremely hard" (20 XP) -> EXTREMELY_HARD (weekly 1)
-     * - Very easy (1) + Normal (1) -> VE_NORMAL (daily 5)
-     * - Easy (3) + Important (3) -> EASY_IMPORTANT (daily 5)
-     * - Hard (7) + Extremely important (10) -> HARD_EXT_IMPORTANT (daily 2)
-     * - Any other combination -> no quota bucket (award once, no quota limit)
-     */
     @Nullable
     private String quotaKeyForTask(@NonNull Task t) {
         // Special overrides everything (spec: max 1 monthly)
@@ -116,6 +107,7 @@ public class TaskService {
         // Extremely hard by difficulty (spec: max 1 weekly)
         if (t.getDifficultyXp() == 20) return QUOTA_EXTREMELY_HARD;
 
+        // Combinations
         if (t.getDifficultyXp() == 1 && t.getImportanceXp() == 1) return QUOTA_VE_NORMAL;
         if (t.getDifficultyXp() == 3 && t.getImportanceXp() == 3) return QUOTA_EASY_IMPORTANT;
         if (t.getDifficultyXp() == 7 && t.getImportanceXp() == 10) return QUOTA_HARD_EXT_IMPORTANT;
@@ -164,20 +156,24 @@ public class TaskService {
     }
 
     private String weekKeyFromDateKey(@NonNull String dateKey) {
-        String[] parts = dateKey.split("-");
-        int y = Integer.parseInt(parts[0]);
-        int m = Integer.parseInt(parts[1]) - 1;
-        int d = Integer.parseInt(parts[2]);
+        try {
+            String[] parts = dateKey.split("-");
+            int y = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]) - 1;
+            int d = Integer.parseInt(parts[2]);
 
-        Calendar c = Calendar.getInstance();
-        c.setFirstDayOfWeek(Calendar.MONDAY);
-        c.setMinimalDaysInFirstWeek(4);
-        c.set(y, m, d, 0, 0, 0);
-        c.set(Calendar.MILLISECOND, 0);
+            Calendar c = Calendar.getInstance();
+            c.setFirstDayOfWeek(Calendar.MONDAY);
+            c.setMinimalDaysInFirstWeek(4);
+            c.set(y, m, d, 0, 0, 0);
+            c.set(Calendar.MILLISECOND, 0);
 
-        int week = c.get(Calendar.WEEK_OF_YEAR);
-        int weekYear = c.getWeekYear();
-        return String.format(Locale.US, "%04d-W%02d", weekYear, week);
+            int week = c.get(Calendar.WEEK_OF_YEAR);
+            int weekYear = c.getWeekYear();
+            return String.format(Locale.US, "%04d-W%02d", weekYear, week);
+        } catch (Exception e) {
+            return dateKey;
+        }
     }
 
     private String monthKeyFromDateKey(@NonNull String dateKey) {
@@ -192,6 +188,11 @@ public class TaskService {
         return dateKey;
     }
 
+    /**
+     * CORE LOGIC:
+     * 1. Checks quotas.
+     * 2. Runs a Transaction to update User (add XP, Level Up) and save XP Event.
+     */
     private void applyCompletionXpIfNeeded(
             @NonNull String uid,
             @NonNull Task task,
@@ -200,95 +201,111 @@ public class TaskService {
             @NonNull Map<String, Object> taskUpdates,
             @NonNull OnTaskActionEventListener listener
     ) {
-        // dateKey for quota:
-        // - recurring: dateKey of occurrence
-        // - single: executionTime day (fallback to today)
+        // 1. Determine Date & Quota Keys
         String dateKey;
         if (occurrenceDateKey != null && !occurrenceDateKey.isEmpty()) {
             dateKey = occurrenceDateKey;
         } else {
             String fromExec = dateKeyFromTimestamp(task.getExecutionTime());
-            if (fromExec != null) dateKey = fromExec;
-            else {
-                String fromNow = dateKeyFromTimestamp(Timestamp.now());
-                dateKey = (fromNow != null) ? fromNow : "";
-            }
+            dateKey = (fromExec != null) ? fromExec : dateKeyFromTimestamp(Timestamp.now());
         }
 
-        final int xpToAdd = Math.max(0, task.getTotalXp());
+        final int xpPotential = Math.max(0, task.getTotalXp());
         final String quotaKey = quotaKeyForTask(task);
-        final WriteBatch batch = db.batch();
+        final String periodKey = (quotaKey != null) ? periodKeyForQuota(quotaKey, dateKey) : dateKey;
 
-        // Always update task status + processed flags
-        batch.update(tasksRef.document(taskId), taskUpdates);
+        // 2. Helper to run transaction after quota check
+        Runnable runTransaction = () -> {
+            db.runTransaction(transaction -> {
+                // A. Read User
+                DocumentReference userDoc = usersRef.document(uid);
+                DocumentSnapshot userSnap = transaction.get(userDoc);
+                User user = userSnap.toObject(User.class);
+                if (user == null) {
+                    // Fallback if user doesn't exist yet (should not happen in prod)
+                    user = new User();
+                    user.uid = uid;
+                }
 
-        // No quota bucket -> award once
-        if (quotaKey == null) {
-            if (xpToAdd > 0) {
-                batch.update(usersRef.document(uid), "xp", FieldValue.increment(xpToAdd));
-            }
+                // B. Check Quota limit (Double check inside if needed, but we do pre-check below)
+                // Note: Counting docs inside transaction is hard. We rely on the pre-check.
+                // Assuming we are allowed to award XP here.
 
+                // C. Calculate Leveling using LevelingService
+                boolean leveledUp = LevelingService.addXp(user, xpPotential);
+
+                // D. Write updates
+                transaction.set(userDoc, user); // Saves updated XP, Level, PP, Title
+                transaction.update(tasksRef.document(taskId), taskUpdates); // Updates task status
+
+                // E. Write XP Event
+                DocumentReference newEventRef = xpEventsRef.document();
+                Map<String, Object> evt = new HashMap<>();
+                evt.put("userId", uid);
+                evt.put("taskId", taskId);
+                evt.put("dateKey", dateKey);
+                evt.put("quotaKey", (quotaKey != null) ? quotaKey : "NONE");
+                evt.put("periodKey", periodKey);
+                evt.put("xpAdded", xpPotential);
+                evt.put("awarded", true);
+                evt.put("createdAt", Timestamp.now());
+                if (occurrenceDateKey != null) evt.put("occurrenceDateKey", occurrenceDateKey);
+
+                transaction.set(newEventRef, evt);
+
+                return leveledUp; // Result of transaction
+            }).addOnSuccessListener(leveledUp -> {
+                String msg = "Status updated: done (+" + xpPotential + " XP)";
+                if (leveledUp) msg += " LEVEL UP!";
+                listener.onSuccess(msg);
+            }).addOnFailureListener(e -> listener.onError("Transaction failed: " + e.getMessage()));
+        };
+
+        // 3. Helper for Quota Limit Reached (No XP)
+        Runnable runNoXpUpdate = () -> {
+            WriteBatch batch = db.batch();
+            batch.update(tasksRef.document(taskId), taskUpdates);
+
+            // Log failed event (awarded=false)
             Map<String, Object> evt = new HashMap<>();
             evt.put("userId", uid);
             evt.put("taskId", taskId);
             evt.put("dateKey", dateKey);
-            evt.put("quotaKey", "NONE");
-            evt.put("periodKey", dateKey);
-            evt.put("xpAdded", xpToAdd);
-            evt.put("awarded", true);
+            evt.put("quotaKey", quotaKey);
+            evt.put("periodKey", periodKey);
+            evt.put("xpAdded", 0);
+            evt.put("awarded", false); // Quota hit
             evt.put("createdAt", Timestamp.now());
-            if (occurrenceDateKey != null) evt.put("occurrenceDateKey", occurrenceDateKey);
-
             batch.set(xpEventsRef.document(), evt);
 
             batch.commit()
-                    .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: done (+" + xpToAdd + " XP)"))
+                    .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: done (Quota limit reached, +0 XP)"))
                     .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
-            return;
+        };
+
+        // 4. Check Quota Logic
+        if (quotaKey == null) {
+            // No quota limits (e.g. unique combinations), always award
+            runTransaction.run();
+        } else {
+            // Check count in Firestore
+            int limit = quotaLimitForKey(quotaKey);
+            xpEventsRef
+                    .whereEqualTo("userId", uid)
+                    .whereEqualTo("quotaKey", quotaKey)
+                    .whereEqualTo("periodKey", periodKey)
+                    .whereEqualTo("awarded", true)
+                    .get()
+                    .addOnSuccessListener(qs -> {
+                        int currentCount = (qs != null) ? qs.size() : 0;
+                        if (currentCount < limit) {
+                            runTransaction.run();
+                        } else {
+                            runNoXpUpdate.run();
+                        }
+                    })
+                    .addOnFailureListener(e -> listener.onError("Quota check error: " + e.getMessage()));
         }
-
-        // Quota bucket -> count awarded events in the period
-        String periodKey = periodKeyForQuota(quotaKey, dateKey);
-        int limit = quotaLimitForKey(quotaKey);
-
-        xpEventsRef
-                .whereEqualTo("userId", uid)
-                .whereEqualTo("quotaKey", quotaKey)
-                .whereEqualTo("periodKey", periodKey)
-                .whereEqualTo("awarded", true)
-                .get()
-                .addOnSuccessListener(qs -> {
-                    int alreadyAwarded = (qs != null) ? qs.size() : 0;
-                    boolean canAward = alreadyAwarded < limit;
-                    int awardedXp = canAward ? xpToAdd : 0;
-
-                    if (canAward && awardedXp > 0) {
-                        batch.update(usersRef.document(uid), "xp", FieldValue.increment(awardedXp));
-                    }
-
-                    Map<String, Object> evt = new HashMap<>();
-                    evt.put("userId", uid);
-                    evt.put("taskId", taskId);
-                    evt.put("dateKey", dateKey);
-                    evt.put("quotaKey", quotaKey);
-                    evt.put("periodKey", periodKey);
-                    evt.put("xpAdded", awardedXp);
-                    evt.put("awarded", canAward);
-                    evt.put("createdAt", Timestamp.now());
-                    if (occurrenceDateKey != null) evt.put("occurrenceDateKey", occurrenceDateKey);
-                    evt.put("quotaLimit", limit);
-                    evt.put("quotaUsedBefore", alreadyAwarded);
-
-                    batch.set(xpEventsRef.document(), evt);
-
-                    batch.commit()
-                            .addOnSuccessListener(aVoid -> {
-                                if (canAward) listener.onSuccess("Status updated: done (+" + awardedXp + " XP)");
-                                else listener.onSuccess("Status updated: done (quota reached, +0 XP)");
-                            })
-                            .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
-                })
-                .addOnFailureListener(e -> listener.onError("Quota check error: " + e.getMessage()));
     }
 
     // ---------------- Status update with XP processing ----------------
@@ -326,7 +343,7 @@ public class TaskService {
                         return;
                     }
 
-                    // normal update (no XP processing)
+                    // normal update (no XP processing or revert)
                     Map<String, Object> updates = new HashMap<>();
                     updates.put("status", newStatus);
                     db.collection("tasks").document(taskId)
@@ -337,10 +354,6 @@ public class TaskService {
                 .addOnFailureListener(e -> listener.onError("Error: " + e.getMessage()));
     }
 
-    /**
-     * For recurring tasks: update status for a specific date occurrence (yyyy-MM-dd).
-     * Stored in: occurrenceStatuses.{dateKey} = newStatus
-     */
     public void updateTaskOccurrenceStatus(
             @NonNull String taskId,
             @NonNull String dateKey,
@@ -380,7 +393,7 @@ public class TaskService {
                         return;
                     }
 
-                    // normal update (no XP processing)
+                    // normal update
                     Map<String, Object> update = new HashMap<>();
                     update.put("occurrenceStatuses." + dateKey, newStatus);
 
