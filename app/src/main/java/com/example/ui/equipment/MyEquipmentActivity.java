@@ -32,6 +32,8 @@ public class MyEquipmentActivity extends AppCompatActivity {
         Button btnEquipBoots  = findViewById(R.id.btnEquipBoots);
         Button btnStats       = findViewById(R.id.btnStats);
         Button btnAfterBattle = findViewById(R.id.btnAfterBattle);
+        Button btnUsePerm5 = findViewById(R.id.btnUsePerm5);
+        Button btnUsePerm10 = findViewById(R.id.btnUsePerm10);
 
         btnUseP20.setOnClickListener(v -> actions.activateOneShotPotion(PotionType.ONE_SHOT_PP20)
                 .addOnSuccessListener(x -> toast("Napitak +20% spreman (potrošiće se u prvoj sledećoj borbi)."))
@@ -64,7 +66,17 @@ public class MyEquipmentActivity extends AppCompatActivity {
                         .addOnSuccessListener(x -> toast("Potrošeno: jednokratni napici i -1 uses za odeću."))
                         .addOnFailureListener(e -> toast(e.getMessage()))
         );
+
+        btnUsePerm5.setOnClickListener(v -> actions.activatePermanentPotion(PotionType.PERM_PP5)
+                .addOnSuccessListener(x -> toast("Trajno povećan PP za 5%!"))
+                .addOnFailureListener(e -> toast("Greška: " + e.getMessage())));
+
+        btnUsePerm10.setOnClickListener(v -> actions.activatePermanentPotion(PotionType.PERM_PP10)
+                .addOnSuccessListener(x -> toast("Trajno povećan PP za 10%!"))
+                .addOnFailureListener(e -> toast("Greška: " + e.getMessage())));
     }
+
+
 
     private void toast(String s){ Toast.makeText(this, s, Toast.LENGTH_SHORT).show(); }
 }

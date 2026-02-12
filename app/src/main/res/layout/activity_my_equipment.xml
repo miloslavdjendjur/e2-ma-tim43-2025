@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent">
+
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:orientation="vertical" android:padding="16dp"
+        android:orientation="vertical"
+        android:padding="16dp"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Jednokratni napici (Traju 1 borbu)"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"/>
 
         <Button android:id="@+id/btnUseP20"
             android:layout_width="match_parent"
@@ -17,34 +26,75 @@
             android:text="Aktiviraj napitak +40% (ONE-SHOT)"/>
 
         <View android:layout_width="match_parent"
-            android:layout_height="8dp"/>
+            android:layout_height="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Trajni napici (Povećavaju tvoj PP zauvek)"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"/>
+
+        <Button android:id="@+id/btnUsePerm5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#4CAF50"
+            android:textColor="#FFFFFF"
+            android:text="POPIJ TRAJNI NAPITAK (+5% PP)"/>
+
+        <Button android:id="@+id/btnUsePerm10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#4CAF50"
+            android:textColor="#FFFFFF"
+            android:text="POPIJ TRAJNI NAPITAK (+10% PP)"/>
+
+        <View android:layout_width="match_parent"
+            android:layout_height="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Odeća (Traje 2 borbe)"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"/>
 
         <Button android:id="@+id/btnEquipGloves"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Obuci rukavice (+10% PP, 2 borbe)"/>
+            android:text="Obuci rukavice (+10% PP)"/>
 
         <Button android:id="@+id/btnEquipShield"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Obuci štit (+10% hit, 2 borbe)"/>
+            android:text="Obuci štit (+10% hit)"/>
 
         <Button android:id="@+id/btnEquipBoots"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Obuj čizme (+40% extra, 2 borbe)"/>
+            android:text="Obuj čizme (+40% extra)"/>
 
         <View android:layout_width="match_parent"
-            android:layout_height="8dp"/>
+            android:layout_height="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Debug / Testiranje"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"/>
 
         <Button android:id="@+id/btnStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="#FF9800"
             android:text="Prikaži efektivne statove"/>
 
         <Button android:id="@+id/btnAfterBattle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Simuliraj: posle borbe (troši opremu)"/>
+            android:backgroundTint="#F44336"
+            android:text="Simuliraj: KRAJ BORBE (Troši opremu)"/>
     </LinearLayout>
 </ScrollView>

@@ -25,6 +25,10 @@
         android:minHeight="48dp"
         android:text="Odjavi se" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="12dp" />
+
     <Button
         android:id="@+id/btnCategories"
         android:layout_width="match_parent"
@@ -63,5 +67,29 @@
         android:layout_marginTop="8dp" />
 
 
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="24dp" />
+
+    <Button
+        android:id="@+id/btnOpenStore"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:backgroundTint="#FF9800"
+        android:text="Otvori Prodavnicu (Shop)"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="12dp" />
+
+    <Button
+        android:id="@+id/btnOpenEquipment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:backgroundTint="#4CAF50"
+        android:text="Otvori Moju Opremu"/>
 
 </LinearLayout>

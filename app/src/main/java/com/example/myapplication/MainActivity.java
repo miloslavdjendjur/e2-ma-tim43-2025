@@ -12,6 +12,8 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.data.repo.AuthRepository;
 import com.example.ui.auth.LoginActivity;
+import com.example.ui.equipment.EquipmentStoreActivity;
+import com.example.ui.equipment.MyEquipmentActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -76,6 +78,21 @@ public class MainActivity extends AppCompatActivity {
             Intent i = new Intent(MainActivity.this, com.example.ui.task.AllTasksActivity.class);
             startActivity(i);
         });
+
+       
+        Button btnStore = findViewById(R.id.btnOpenStore);
+        Button btnEquip = findViewById(R.id.btnOpenEquipment);
+
+        btnStore.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, EquipmentStoreActivity.class);
+            startActivity(intent);
+        });
+
+        btnEquip.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, MyEquipmentActivity.class);
+            startActivity(intent);
+        });
+
 
         // Insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
