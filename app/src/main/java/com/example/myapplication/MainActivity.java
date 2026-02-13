@@ -2,103 +2,41 @@ package com.example.myapplication;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
+import androidx.navigation.ui.NavigationUI;
 
-import com.example.data.repo.AuthRepository;
 import com.example.ui.auth.LoginActivity;
-import com.example.ui.equipment.EquipmentStoreActivity;
-import com.example.ui.equipment.MyEquipmentActivity;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        com.google.firebase.auth.FirebaseUser u =
-                com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
-
-        if (u == null) {
-            startActivity(new Intent(this, com.example.ui.auth.LoginActivity.class));
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Intent i = new Intent(this, LoginActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(i);
             finish();
             return;
         }
 
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        // Logout
-        Button btnLogout = findViewById(R.id.btnLogout);
-        btnLogout.setOnClickListener(v -> {
-            new AuthRepository().logout();
-            Intent i = new Intent(this, LoginActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(i);
-            finish();
-        });
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
 
-        // Profile
-        Button btnProfile = findViewById(R.id.btnProfile);
-        btnProfile.setOnClickListener(v ->
-                startActivity(new Intent(this, com.example.ui.profile.ProfileActivity.class)));
+        NavHostFragment navHost =
+                (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
 
-        // Level
-        Button btnLevel = findViewById(R.id.btnLevel);
-        btnLevel.setOnClickListener(v ->
-                startActivity(new Intent(this, com.example.ui.level.LevelProgressActivity.class)));
+        if (navHost == null) return;
 
-        // Categories
-        Button btnCategories = findViewById(R.id.btnCategories);
-        btnCategories.setOnClickListener(v ->
-                startActivity(new Intent(this, com.example.ui.category.CategoryActivity.class)));
-
-        // Create Task
-        Button btnCreateTask = findViewById(R.id.btnCreateTask);
-        btnCreateTask.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, com.example.ui.task.CreateTaskActivity.class);
-            startActivity(intent);
-        });
-
-        // View Calendar Tasks (kalendar stranica)
-        Button btnViewTasks = findViewById(R.id.btnViewTasks);
-        btnViewTasks.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, com.example.ui.task.TasksActivity.class);
-            startActivity(intent);
-        });
-
-        // All Tasks (lista sa filterom)
-        Button btnAllTasks = findViewById(R.id.btnAllTasks);
-        btnAllTasks.setOnClickListener(v -> {
-            Intent i = new Intent(MainActivity.this, com.example.ui.task.AllTasksActivity.class);
-            startActivity(i);
-        });
-
-       
-        Button btnStore = findViewById(R.id.btnOpenStore);
-        Button btnEquip = findViewById(R.id.btnOpenEquipment);
-
-        btnStore.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, EquipmentStoreActivity.class);
-            startActivity(intent);
-        });
-
-        btnEquip.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, MyEquipmentActivity.class);
-            startActivity(intent);
-        });
-
-
-        // Insets
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        NavController navController = navHost.getNavController();
+        NavigationUI.setupWithNavController(bottomNav, navController);
     }
 }

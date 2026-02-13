@@ -1,18 +1,23 @@
 package com.example.ui.task;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.CalendarView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.data.model.Category;
 import com.example.data.model.Task;
-import com.example.data.service.CategoryService; // Promenjeno
+import com.example.data.service.CategoryService;
 import com.example.data.service.TaskService;
 import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
@@ -23,19 +28,22 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class TasksActivity extends AppCompatActivity {
+public class TasksFragment extends Fragment {
 
     private RecyclerView rvTasks;
     private TaskAdapter adapter;
 
-    // Koristimo Servise za oba entiteta
     private final TaskService taskService = new TaskService();
-    private final CategoryService categoryService = new CategoryService(); // Promenjeno
+    private final CategoryService categoryService = new CategoryService();
 
     private List<Task> allTasks = new ArrayList<>();
     private List<Category> allCategories = new ArrayList<>();
 
     private int selectedYear, selectedMonth, selectedDayOfMonth;
+
+    public TasksFragment() {
+        super(R.layout.fragment_tasks);
+    }
 
     private String selectedDateKey() {
         Calendar c = Calendar.getInstance();
@@ -45,22 +53,23 @@ public class TasksActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tasks);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        rvTasks = findViewById(R.id.rvTasks);
-        CalendarView calendarView = findViewById(R.id.calendarView);
+        rvTasks = view.findViewById(R.id.rvTasks);
+        CalendarView calendarView = view.findViewById(R.id.calendarView);
 
-        rvTasks.setLayoutManager(new LinearLayoutManager(this));
+        Button btnNewCategory = view.findViewById(R.id.btnNewCategory);
+        Button btnNewTask = view.findViewById(R.id.btnNewTask);
+        Button btnAllTasks = view.findViewById(R.id.btnAllTasks);
+
+        rvTasks.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         adapter = new TaskAdapter(
-                // quick checkbox done/active
                 (task, isDone) -> {
                     String newStatus = isDone ? Task.STATUS_DONE : Task.STATUS_ACTIVE;
                     updateStatus(task, newStatus);
                 },
-                // popup actions
                 new TaskAdapter.OnTaskActionsListener() {
                     @Override
                     public void onView(Task task) {
@@ -86,24 +95,38 @@ public class TasksActivity extends AppCompatActivity {
         selectedMonth = today.get(Calendar.MONTH);
         selectedDayOfMonth = today.get(Calendar.DAY_OF_MONTH);
 
-        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
+        calendarView.setOnDateChangeListener((v, year, month, dayOfMonth) -> {
             selectedYear = year;
             selectedMonth = month;
             selectedDayOfMonth = dayOfMonth;
             filterTasksByDate(year, month, dayOfMonth);
         });
 
+        btnAllTasks.setOnClickListener(v -> {
+            NavController nav = NavHostFragment.findNavController(this);
+            nav.navigate(R.id.action_tasks_to_allTasks);
+        });
+
+        btnNewTask.setOnClickListener(v -> {
+            NavController nav = NavHostFragment.findNavController(this);
+            nav.navigate(R.id.action_tasks_to_createTask);
+        });
+
+        btnNewCategory.setOnClickListener(v -> {
+            NavController nav = NavHostFragment.findNavController(this);
+            nav.navigate(R.id.action_tasks_to_category);
+        });
+
         loadData();
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         loadData();
     }
 
     private void loadData() {
-        // Poziv preko servisa
         categoryService.getAllCategories(categories -> {
             allCategories = (categories != null) ? categories : new ArrayList<>();
             taskService.getTasks(tasks -> {
@@ -115,18 +138,20 @@ public class TasksActivity extends AppCompatActivity {
 
     private void openDetail(Task task) {
         if (task.getId() == null || task.getId().isEmpty()) {
-            Toast.makeText(this, "Task id missing.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Task id missing.", Toast.LENGTH_SHORT).show();
             return;
         }
-        Intent i = new Intent(this, TaskDetailActivity.class);
-        i.putExtra(TaskDetailActivity.EXTRA_TASK_ID, task.getId());
-        i.putExtra(TaskDetailActivity.EXTRA_DATE_KEY, selectedDateKey());
-        startActivity(i);
+
+        Bundle b = new Bundle();
+        b.putString(TaskDetailFragment.ARG_TASK_ID, task.getId());
+        b.putString(TaskDetailFragment.ARG_DATE_KEY, selectedDateKey());
+
+        NavHostFragment.findNavController(this).navigate(R.id.action_tasks_to_taskDetail, b);
     }
 
     private void updateStatus(Task task, String newStatus) {
         if (task.getId() == null || task.getId().isEmpty()) {
-            Toast.makeText(this, "Task id missing - can't update status.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Task id missing - can't update status.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -135,26 +160,26 @@ public class TasksActivity extends AppCompatActivity {
             taskService.updateTaskOccurrenceStatus(task.getId(), dateKey, newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
-                    Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                     loadData();
                 }
 
                 @Override
                 public void onError(String error) {
-                    Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
                 }
             });
         } else {
             taskService.updateTaskStatus(task.getId(), newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
-                    Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                     loadData();
                 }
 
                 @Override
                 public void onError(String error) {
-                    Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -162,24 +187,24 @@ public class TasksActivity extends AppCompatActivity {
 
     private void openEditTask(Task task) {
         if (task.getId() == null || task.getId().isEmpty()) {
-            Toast.makeText(this, "Task id missing - can't edit.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Task id missing - can't edit.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Intent i = new Intent(this, CreateTaskActivity.class);
-        i.putExtra(CreateTaskActivity.EXTRA_TASK_ID, task.getId());
-        startActivity(i);
+        Bundle b = new Bundle();
+        b.putString(CreateTaskFragment.ARG_TASK_ID, task.getId());
+        NavHostFragment.findNavController(this).navigate(R.id.createTaskFragment, b);
     }
 
     private void confirmDelete(Task task) {
         if (task.getId() == null || task.getId().isEmpty()) {
-            Toast.makeText(this, "Task id missing - can't delete.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Task id missing - can't delete.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (Task.TYPE_SINGLE.equals(task.getType())) {
             if (Task.STATUS_DONE.equals(task.getStatus())) {
-                Toast.makeText(this, "Finished tasks cannot be deleted.", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Finished tasks cannot be deleted.", Toast.LENGTH_LONG).show();
                 return;
             }
         }
@@ -188,13 +213,13 @@ public class TasksActivity extends AppCompatActivity {
             String dateKey = selectedDateKey();
             String occStatus = task.getOccurrenceStatusForDateKey(dateKey);
             if (Task.STATUS_DONE.equals(occStatus)) {
-                Toast.makeText(this, "Finished occurrences cannot be deleted.", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Finished occurrences cannot be deleted.", Toast.LENGTH_LONG).show();
                 return;
             }
         }
 
         if (Task.TYPE_RECURRING.equals(task.getType())) {
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(requireContext())
                     .setTitle("Delete recurring task")
                     .setMessage("What do you want to delete?")
                     .setPositiveButton("This occurrence + future", (d, w) -> truncateRecurringFromSelectedDate(task))
@@ -202,7 +227,7 @@ public class TasksActivity extends AppCompatActivity {
                     .setNegativeButton("Cancel", null)
                     .show();
         } else {
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(requireContext())
                     .setTitle("Delete task")
                     .setMessage("Are you sure you want to delete: \"" + task.getName() + "\"?")
                     .setPositiveButton("Delete", (dialog, which) -> deleteTask(task.getId()))
@@ -222,19 +247,19 @@ public class TasksActivity extends AppCompatActivity {
         taskService.truncateRecurringFromDate(task.getId(), newEnd, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
-                Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                 loadData();
             }
 
             @Override
             public void onError(String error) {
-                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
             }
         });
     }
 
     private void deleteWholeDocument(Task task) {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Delete entire series")
                 .setMessage("This will delete past and future occurrences. Continue?")
                 .setPositiveButton("Delete", (dialog, which) -> deleteTask(task.getId()))
@@ -246,13 +271,13 @@ public class TasksActivity extends AppCompatActivity {
         taskService.deleteTask(taskId, new TaskService.OnTaskActionEventListener() {
             @Override
             public void onSuccess(String message) {
-                Toast.makeText(TasksActivity.this, message, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                 loadData();
             }
 
             @Override
             public void onError(String error) {
-                Toast.makeText(TasksActivity.this, error, Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
             }
         });
     }
