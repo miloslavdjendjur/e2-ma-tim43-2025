@@ -52,13 +52,13 @@ public class RegisterActivity extends AppCompatActivity {
         String pass = etPass.getText().toString();
         String pass2 = etPass2.getText().toString();
 
-        if (email.isEmpty() || username.isEmpty() || pass.isEmpty() || pass2.isEmpty()) { toast("Popuni sva polja"); return; }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { toast("Email nije ispravan"); return; }
-        if (!pass.equals(pass2)) { toast("Lozinke se ne poklapaju"); return; }
+        if (email.isEmpty() || username.isEmpty() || pass.isEmpty() || pass2.isEmpty()) { toast("Fill out all of the fields bitch"); return; }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { toast("Email not valid"); return; }
+        if (!pass.equals(pass2)) { toast("Invalid password"); return; }
 
         authRepo.register(email, pass).addOnSuccessListener(authResult -> {
             FirebaseUser fbUser = authResult.getUser();
-            if (fbUser == null) { toast("Greška pri registraciji"); return; }
+            if (fbUser == null) { toast("Error whiel registering"); return; }
 
             String uid = fbUser.getUid();
             int avatarIndex = spAvatar.getSelectedItemPosition();
@@ -68,24 +68,24 @@ public class RegisterActivity extends AppCompatActivity {
 
                 fbUser.sendEmailVerification()
                         .addOnSuccessListener(x -> {
-                            toast("Verifikacioni email poslat.");
+                            toast("Verification email sent.");
 
                             startActivity(new Intent(this, VerifyMailActivity.class).putExtra("email", email));
                             finish();
                         })
-                        .addOnFailureListener(e -> toast("Slanje verifikacionog emaila nije uspelo: " + e.getMessage()));
+                        .addOnFailureListener(e -> toast("Error while sending verification email: " + e.getMessage()));
 
             }).addOnFailureListener(e -> {
 
                 toast(e.getMessage() != null && e.getMessage().contains("Username already") ?
-                        "Korisničko ime je zauzeto. Izaberi drugo." :
-                        "Greška pri čuvanju profila: " + e.getMessage());
+                        "Username already taken." :
+                        "Error while saving profile: " + e.getMessage());
 
                 FirebaseUser cur = authRepo.current();
                 if (cur != null) cur.delete();
             });
 
-        }).addOnFailureListener(e -> toast("Registracija nije uspela: " + e.getMessage()));
+        }).addOnFailureListener(e -> toast("Registration unsuccessful: " + e.getMessage()));
     }
 
     private void toast(@NonNull String s) { Toast.makeText(this, s, Toast.LENGTH_SHORT).show(); }

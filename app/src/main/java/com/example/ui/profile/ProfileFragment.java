@@ -18,6 +18,7 @@ import com.example.data.repo.UserRepository;
 import com.example.data.service.LevelingService;
 import com.example.myapplication.R;
 import com.example.ui.auth.LoginActivity;
+import com.example.ui.boss.BossPrepActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.zxing.BarcodeFormat;
@@ -31,7 +32,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvLevel, tvTitle, tvXp, tvPp, tvNext, tvCoins, tvBadges;
     private ProgressBar progress, progressXp;
 
-    private Button btnChangePass, btnLogout;
+    private Button btnChangePass, btnLogout, btnBossFight;
 
     private final UserRepository userRepo = new UserRepository();
 
@@ -58,8 +59,12 @@ public class ProfileFragment extends Fragment {
         progress = view.findViewById(R.id.progress);
         progressXp = view.findViewById(R.id.progressXp);
 
+        btnBossFight = view.findViewById(R.id.btnBossFight);
         btnChangePass = view.findViewById(R.id.btnChangePass);
         btnLogout = view.findViewById(R.id.btnLogout);
+
+        btnBossFight.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), BossPrepActivity.class)));
 
         btnChangePass.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), ChangePasswordActivity.class)));
@@ -93,14 +98,12 @@ public class ProfileFragment extends Fragment {
         User u = snap.toObject(User.class);
         if (u == null) return;
 
-        // avatar
         int resId = getResources().getIdentifier(
                 "avatar_" + u.avatarIndex, "drawable", requireContext().getPackageName());
         if (resId != 0) ivAvatar.setImageResource(resId);
 
         tvUsername.setText(u.username != null ? u.username : "");
 
-        // QR
         try {
             String qr = (u.qrId != null && !u.qrId.isEmpty()) ? u.qrId : u.uid;
             BarcodeEncoder encoder = new BarcodeEncoder();
@@ -108,7 +111,6 @@ public class ProfileFragment extends Fragment {
             ivQr.setImageBitmap(bitmap);
         } catch (Exception ignored) {}
 
-        // Level progress
         int threshold = LevelingService.getThresholdForLevel(u.level);
         int xp = (int) u.xp;
         int pct = threshold <= 0 ? 0 : (int) Math.round((xp * 100.0) / threshold);
@@ -117,14 +119,14 @@ public class ProfileFragment extends Fragment {
 
         tvLevel.setText("Level " + u.level);
         tvTitle.setText(u.title != null ? u.title : "");
-        tvPp.setText("PP: " + u.pp);
+        tvPp.setText("Power: " + u.pp);
         tvXp.setText("XP: " + xp + " / " + threshold);
         progressXp.setProgress(pct);
 
         tvNext.setText("Next level at: " + threshold + " XP");
 
-        tvCoins.setText("Novčići: " + u.coins);
-        tvBadges.setText("Bedževi: " + u.badges);
+        tvCoins.setText("Coins: " + u.coins);
+        tvBadges.setText("Badges: " + u.badges);
     }
 
     private void doLogout() {

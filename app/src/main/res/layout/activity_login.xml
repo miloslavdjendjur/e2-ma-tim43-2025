@@ -34,7 +34,7 @@
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPass"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:hint="@string/login_password_hint"
+                    android:hint="Password"
                     android:inputType="textPassword"
                     android:autofillHints="password"
                     android:importantForAutofill="yes"
@@ -47,14 +47,14 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:minHeight="48dp"
                 android:layout_marginTop="16dp"
-                android:text="@string/login_button"/>
+                android:text="Login"/>
 
             <Button
                 android:id="@+id/btnGoRegister"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:minHeight="48dp"
                 android:layout_marginTop="8dp"
-                android:text="@string/login_register_cta"/>
+                android:text="Don't have an account? Register now!"/>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
