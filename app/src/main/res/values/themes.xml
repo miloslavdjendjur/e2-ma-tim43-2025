@@ -1,9 +1,20 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<resources>
+
+    <style name="Theme.MyApp" parent="Theme.Material3.DayNight.NoActionBar">
+
+        <item name="colorPrimary">@color/petronas_primary</item>
+        <item name="colorPrimaryContainer">@color/petronas_primary_container</item>
+
+        <item name="colorSecondary">@color/petronas_secondary</item>
+
+        <item name="colorSecondaryContainer">@color/petronas_primary_container</item>
+        <item name="colorOnSecondaryContainer">@color/background_dark</item>
+
+        <item name="android:colorBackground">@color/background_light</item>
+        <item name="colorSurface">@color/surface_light</item>
+
+        <item name="android:statusBarColor">@color/petronas_primary_container</item>
+
     </style>
 
-    <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
 </resources>

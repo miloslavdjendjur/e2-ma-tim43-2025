@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <!-- PETRONAS palette -->
+    <color name="petronas_primary">#00A19C</color>
+    <color name="petronas_primary_container">#C2D3D2</color>
+    <color name="petronas_secondary">#5CE1E6</color>
+
+    <!-- Background / Surface -->
+    <color name="background_light">#F5FDFD</color>
+    <color name="surface_light">#FFFFFF</color>
+
+    <color name="background_dark">#0E1F1F</color>
+    <color name="surface_dark">#162B2B</color>
+
+    <!-- Text -->
+    <color name="text_primary_light">#1A1A1A</color>
+    <color name="text_primary_dark">#FFFFFF</color>
+
 </resources>
