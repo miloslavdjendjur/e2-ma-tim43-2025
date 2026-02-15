@@ -11,30 +11,20 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header -->
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="wrap_content"
+        <!-- Loading (zadrzavam ID da ti kod ne pukne, ali je lepse) -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progress"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Boss fight"
-            android:textStyle="bold"
-            android:textSize="24sp" />
+            android:layout_marginBottom="14dp"
+            android:indeterminate="true"
+            android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tvLoading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="Loading..."
-            android:textSize="14sp"
-            android:alpha="0.8" />
-
-        <!-- Boss card -->
+        <!-- Header: Boss icon + title -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            app:cardCornerRadius="20dp"
+            app:cardCornerRadius="22dp"
             app:cardElevation="2dp"
             app:strokeWidth="1dp"
             app:strokeColor="@color/petronas_primary_container">
@@ -43,289 +33,50 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="14dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <ImageView
-                    android:id="@+id/ivBoss"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:src="@drawable/boss_placeholder"
-                    android:contentDescription="Boss" />
+                    android:id="@+id/ivBossIcon"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/boss_profile"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="TheBoss" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="12dp"
+                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/tvBossName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="The Boss"
+                        android:text="TheBoss"
                         android:textStyle="bold"
-                        android:textSize="18sp" />
+                        android:textSize="20sp" />
 
                     <TextView
-                        android:id="@+id/tvBossLevel"
+                        android:id="@+id/tvLevel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Level: -"
-                        android:layout_marginTop="4dp" />
-
+                        android:layout_marginTop="4dp"
+                        android:text="Boss level: -"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Loadout slots -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Loadout"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginTop="16dp" />
-
-        <GridLayout
-            android:id="@+id/gridSlots"
-            android:layout_width="match_parent"
-            android:layout_height="345dp"
-            android:layout_marginTop="10dp"
-            android:columnCount="2"
-            android:rowCount="3"
-            android:useDefaultMargins="true">
-
-            <!-- Weapon -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="@color/petronas_primary_container"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:contentDescription="Weapon"
-                        android:src="@drawable/ic_slot_weapon" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Weapon"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSlotWeapon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:alpha="0.85"
-                            android:text="None" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Shield -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="@color/petronas_primary_container"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:contentDescription="Shield"
-                        android:src="@drawable/ic_slot_shield" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Shield"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSlotShield"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:alpha="0.85"
-                            android:text="Inactive" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Gloves -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="@color/petronas_primary_container"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:contentDescription="Gloves"
-                        android:src="@drawable/ic_slot_gloves" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Gloves"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSlotGloves"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:alpha="0.85"
-                            android:text="Inactive" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Boots -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="@color/petronas_primary_container"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:contentDescription="Boots"
-                        android:src="@drawable/ic_slot_boots" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Boots"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSlotBoots"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:alpha="0.85"
-                            android:text="Inactive" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Potion -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnSpan="2"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="@color/petronas_primary_container"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:contentDescription="Potion"
-                        android:src="@drawable/ic_slot_potion" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Potion"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSlotPotion"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:alpha="0.85"
-                            android:text="None pending" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-        </GridLayout>
-
-        <!-- Stats -->
+        <!-- Stats card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            app:cardCornerRadius="20dp"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="22dp"
             app:cardElevation="2dp"
             app:strokeWidth="1dp"
             app:strokeColor="@color/petronas_primary_container">
@@ -339,14 +90,15 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Combat stats"
-                    android:textStyle="bold" />
+                    android:text="Battle stats"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/tvEffectivePp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:text="Effective PP: -" />
 
                 <TextView
@@ -362,31 +114,237 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="Extra try chance: -" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Equipment list (stacked items) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/petronas_primary_container">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Active equipment"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
+
+                <!-- Weapon -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/weapon"
+                        android:contentDescription="weapon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Weapon"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvWeaponValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="—" />
+                </LinearLayout>
+
+                <!-- Shield -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/sheild"
+                        android:contentDescription="shield" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Shield"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvShieldValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="—" />
+                </LinearLayout>
+
+                <!-- Gloves -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/gloves"
+                        android:contentDescription="gloves" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Gloves"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvGlovesValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="—" />
+                </LinearLayout>
+
+                <!-- Boots -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/boots"
+                        android:contentDescription="boots" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Boots"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvBootsValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="—" />
+                </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Buttons -->
-        <Button
+        <!-- Potions / note -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/petronas_primary_container">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="14dp"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/potion"
+                        android:contentDescription="potions" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Potion effects"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="-"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Actions (stacked menu items) -->
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMyEquipment"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:text="My equipment" />
+            android:text="Inventory"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStore"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="Store" />
+            android:text="Store"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStartFight"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:text="Start fight" />
+            android:text="Start boss fight"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp" />
+
+        <!-- bottom spacing -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
 
     </LinearLayout>
 </ScrollView>

@@ -11,13 +11,15 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.data.model.equipment.type.PotionType;
 import com.example.data.repo.EquipmentRepository;
 import com.example.data.service.EquipmentService;
 import com.example.myapplication.R;
 import com.example.ui.equipment.EquipmentStoreActivity;
 import com.example.ui.equipment.MyEquipmentActivity;
 import com.google.android.gms.tasks.Tasks;
-import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
+import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
@@ -28,11 +30,17 @@ public class BossPrepActivity extends AppCompatActivity {
     private final EquipmentRepository repo = new EquipmentRepository();
     private final EquipmentService service = new EquipmentService();
 
-    private TextView tvLoading, tvBossLevel, tvBossName;
-    private ImageView ivBoss;
+    // NEW UI (matches new activity_boss_prep.xml)
+    private LinearProgressIndicator progress;
+    private TextView tvLevel;
 
-    private TextView tvSlotWeapon, tvSlotShield, tvSlotGloves, tvSlotBoots, tvSlotPotion;
+    private ImageView ivBossIcon;
+
     private TextView tvEffectivePp, tvHitBonus, tvExtraTry;
+    private TextView tvWeaponValue, tvShieldValue, tvGlovesValue, tvBootsValue;
+
+    // We reuse tvNote for potion effects / tips
+    private TextView tvNote;
 
     private Button btnMyEquipment, btnStore, btnStartFight;
 
@@ -46,20 +54,22 @@ public class BossPrepActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_boss_prep);
 
-        tvLoading = findViewById(R.id.tvLoading);
-        tvBossLevel = findViewById(R.id.tvBossLevel);
-        tvBossName = findViewById(R.id.tvBossName);
-        ivBoss = findViewById(R.id.ivBoss);
+        // IDs from the new XML
+        progress = findViewById(R.id.progress);
+        tvLevel = findViewById(R.id.tvLevel);
 
-        tvSlotWeapon = findViewById(R.id.tvSlotWeapon);
-        tvSlotShield = findViewById(R.id.tvSlotShield);
-        tvSlotGloves = findViewById(R.id.tvSlotGloves);
-        tvSlotBoots = findViewById(R.id.tvSlotBoots);
-        tvSlotPotion = findViewById(R.id.tvSlotPotion);
+        ivBossIcon = findViewById(R.id.ivBossIcon);
 
         tvEffectivePp = findViewById(R.id.tvEffectivePp);
         tvHitBonus = findViewById(R.id.tvHitBonus);
         tvExtraTry = findViewById(R.id.tvExtraTry);
+
+        tvWeaponValue = findViewById(R.id.tvWeaponValue);
+        tvShieldValue = findViewById(R.id.tvShieldValue);
+        tvGlovesValue = findViewById(R.id.tvGlovesValue);
+        tvBootsValue = findViewById(R.id.tvBootsValue);
+
+        tvNote = findViewById(R.id.tvNote);
 
         btnMyEquipment = findViewById(R.id.btnMyEquipment);
         btnStore = findViewById(R.id.btnStore);
@@ -84,7 +94,10 @@ public class BossPrepActivity extends AppCompatActivity {
         btnMyEquipment.setEnabled(enabled);
         btnStore.setEnabled(enabled);
         btnStartFight.setEnabled(enabled);
-        tvLoading.setVisibility(enabled ? View.GONE : View.VISIBLE);
+
+        if (progress != null) {
+            progress.setVisibility(enabled ? View.GONE : View.VISIBLE);
+        }
     }
 
     private void load() {
@@ -93,8 +106,13 @@ public class BossPrepActivity extends AppCompatActivity {
                     Long lvl = userDoc.getLong("level");
                     userLevel = (lvl != null) ? lvl.intValue() : 1;
 
-                    tvBossName.setText("The Boss");
-                    tvBossLevel.setText("Level: " + userLevel);
+                    // Header boss icon is static; XML already sets boss_idle0,
+                    // but keep this in case you change it later.
+                    if (ivBossIcon != null) {
+                        ivBossIcon.setImageResource(R.drawable.boss_idle0);
+                    }
+
+                    tvLevel.setText("Boss level: " + userLevel);
 
                     service.computeEffectiveStats(userDoc)
                             .addOnSuccessListener(stats -> {
@@ -106,7 +124,7 @@ public class BossPrepActivity extends AppCompatActivity {
                                 tvHitBonus.setText(String.format(Locale.US, "Hit bonus: +%d%%", hitBonusPct));
                                 tvExtraTry.setText(String.format(Locale.US, "Extra try chance: %d%%", extraTryPct));
 
-                                loadSlots();
+                                loadSlotsAndPotions();
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(this, "Failed to load equipment stats", Toast.LENGTH_SHORT).show();
@@ -119,49 +137,43 @@ public class BossPrepActivity extends AppCompatActivity {
                 });
     }
 
-    private void loadSlots() {
+    private void loadSlotsAndPotions() {
         Tasks.whenAllSuccess(repo.getWeapons(), repo.getClothes(), repo.getPotions())
                 .addOnSuccessListener(list -> {
                     QuerySnapshot weapons = (QuerySnapshot) list.get(0);
                     QuerySnapshot clothes = (QuerySnapshot) list.get(1);
                     QuerySnapshot potions = (QuerySnapshot) list.get(2);
 
-                    // Weapon: show if any weapon doc exists
-                    String weaponText = "None";
-                    for (QueryDocumentSnapshot d : weapons) {
-                        String type = d.getString("type");
-                        Long level = d.getLong("level");
-                        if (type != null) {
-                            weaponText = type + (level != null ? (" +" + level) : "");
-                            break;
-                        }
-                    }
-                    tvSlotWeapon.setText(weaponText);
+                    // Weapon (simple: first weapon found)
+                    tvWeaponValue.setText(firstWeaponText(weapons));
 
-                    // Clothes: active + usesLeft
-                    tvSlotShield.setText(statusForClothes(clothes, "SHIELD"));
-                    tvSlotGloves.setText(statusForClothes(clothes, "GLOVES"));
-                    tvSlotBoots.setText(statusForClothes(clothes, "BOOTS"));
+                    // Clothes types (your Firestore types: SHIELD / GLOVES / BOOTS)
+                    tvShieldValue.setText(statusForClothes(clothes, "SHIELD"));
+                    tvGlovesValue.setText(statusForClothes(clothes, "GLOVES"));
+                    tvBootsValue.setText(statusForClothes(clothes, "BOOTS"));
 
-                    // Potion: pendingUse
-                    String potionText = "None pending";
-                    for (QueryDocumentSnapshot d : potions) {
-                        Boolean pending = d.getBoolean("pendingUse");
-                        if (pending != null && pending) {
-                            String type = d.getString("type");
-                            Long count = d.getLong("count");
-                            potionText = (type != null ? type : "Potion") + (count != null ? (" x" + count) : "");
-                            break;
-                        }
-                    }
-                    tvSlotPotion.setText(potionText);
+                    // Potion effects in tvNote
+                    tvNote.setText(potionEffectsText(potions));
 
                     setEnabled(true);
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to load slots", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Failed to load equipment/potions", Toast.LENGTH_SHORT).show();
                     setEnabled(true);
                 });
+    }
+
+    private String firstWeaponText(QuerySnapshot weapons) {
+        String weaponText = "—";
+        for (QueryDocumentSnapshot d : weapons) {
+            String type = d.getString("type");
+            Long level = d.getLong("level");
+            if (type != null) {
+                weaponText = type + (level != null ? (" +" + level) : "");
+                break;
+            }
+        }
+        return weaponText;
     }
 
     private String statusForClothes(QuerySnapshot clothes, String type) {
@@ -171,7 +183,7 @@ public class BossPrepActivity extends AppCompatActivity {
 
             Boolean active = d.getBoolean("active");
             Long usesLeft = d.getLong("usesLeft");
-            Long stacked = d.getLong("stackedPercent");
+            Long stacked = d.getLong("stackedPercent"); // your schema
 
             if (active != null && active && usesLeft != null && usesLeft > 0) {
                 int pct = (stacked != null) ? stacked.intValue() : 0;
@@ -180,6 +192,70 @@ public class BossPrepActivity extends AppCompatActivity {
             return "Inactive";
         }
         return "Inactive";
+    }
+
+    private String potionEffectsText(QuerySnapshot potions) {
+        // You currently store "pendingUse" + "type" + "count".
+        // We’ll list all pending potions and their effect descriptions.
+        StringBuilder sb = new StringBuilder();
+
+        boolean anyPending = false;
+
+        for (QueryDocumentSnapshot d : potions) {
+            Boolean pending = d.getBoolean("pendingUse");
+            if (pending == null || !pending) continue;
+
+            anyPending = true;
+
+            String typeStr = d.getString("type");
+            Long count = d.getLong("count");
+            int c = (count != null) ? count.intValue() : 1;
+
+            String effect = describePotion(typeStr);
+
+            sb.append("• ")
+                    .append(typeStr != null ? typeStr : "Potion")
+                    .append(" x").append(c);
+
+            if (!effect.isEmpty()) {
+                sb.append(" — ").append(effect);
+            }
+            sb.append("\n");
+        }
+
+        if (!anyPending) {
+            sb.append("No pending potions.\n");
+        }
+
+        // Small helpful tip (matches your prep screen idea)
+        sb.append("\nTip: One-shot potions are consumed in the next boss fight.");
+
+        return sb.toString().trim();
+    }
+
+    private String describePotion(String typeStr) {
+        if (typeStr == null) return "";
+
+        // Your enum:
+        // ONE_SHOT_PP20, ONE_SHOT_PP40, PERM_PP5, PERM_PP10
+        try {
+            PotionType t = PotionType.valueOf(typeStr);
+            switch (t) {
+                case ONE_SHOT_PP20:
+                    return "+20% PP (one fight)";
+                case ONE_SHOT_PP40:
+                    return "+40% PP (one fight)";
+                case PERM_PP5:
+                    return "+5% PP (permanent)";
+                case PERM_PP10:
+                    return "+10% PP (permanent)";
+                default:
+                    return "";
+            }
+        } catch (IllegalArgumentException ignored) {
+            // If Firestore stores different strings, just show raw type
+            return "";
+        }
     }
 
     private void startFight() {

@@ -1,7 +1,7 @@
 <animation-list xmlns:android="http://schemas.android.com/apk/res/android"
     android:oneshot="false">
-    <item android:drawable="@drawable/boss_idle0" android:duration="500"/>
-    <item android:drawable="@drawable/boss_idle1" android:duration="500"/>
-    <item android:drawable="@drawable/boss_idle2" android:duration="500"/>
-    <item android:drawable="@drawable/boss_idle3" android:duration="500"/>
+    <item android:drawable="@drawable/boss_idle0" android:duration="200"/>
+    <item android:drawable="@drawable/boss_idle1" android:duration="200"/>
+    <item android:drawable="@drawable/boss_idle2" android:duration="200"/>
+    <item android:drawable="@drawable/boss_idle3" android:duration="200"/>
 </animation-list>

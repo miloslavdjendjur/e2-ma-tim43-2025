@@ -204,7 +204,7 @@ public class BossFightActivity extends AppCompatActivity {
                                 tvCombatLog.setText("Boss defeated!");
                                 long deathMs = playBossAnim(R.drawable.boss_death_anim);
                                 endBattleRunnable = this::endBattle;
-                                ivBoss.postDelayed(endBattleRunnable, Math.max(250, deathMs + 30));
+                                ivBoss.postDelayed(endBattleRunnable, Math.max(500, deathMs + 30));
                             } else {
                                 playBossAnim(R.drawable.boss_idle_anim);
                                 if (boss.getAttacksLeft() > 0) btnAttack.setEnabled(true);
