@@ -1,11 +1,11 @@
 package com.example.ui.boss;
 
 import android.animation.ObjectAnimator;
-import android.content.Intent;
+import android.graphics.drawable.AnimationDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -13,6 +13,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -36,7 +37,7 @@ public class BossFightActivity extends AppCompatActivity {
 
     private TextView tvBossLevel, tvBossHpText, tvUserPp, tvChance, tvCombatLog;
     private ProgressBar pbBossHp;
-    private ImageView ivBoss;
+    private ImageView ivBoss, ivHurt;
     private LinearLayout layoutAttempts;
     private Button btnAttack;
 
@@ -47,8 +48,15 @@ public class BossFightActivity extends AppCompatActivity {
     private int hitBonusPct = 0;
     private int extraTryPct = 0;
 
-    private double successRatePct = 0.0; // 0..100
+    private double successRatePct = 0.0;
     private int maxAttacksThisBattle = 5;
+
+    private AnimationDrawable bossAnim;
+
+    // We keep refs to callbacks so we can cancel them (prevents animation overlap)
+    private Runnable resumeAfterAnimRunnable;
+    private Runnable endBattleRunnable;
+    private Runnable hideOverlayRunnable;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -58,18 +66,34 @@ public class BossFightActivity extends AppCompatActivity {
         tvBossLevel = findViewById(R.id.tvBossLevel);
         tvBossHpText = findViewById(R.id.tvBossHpText);
         pbBossHp = findViewById(R.id.pbBossHp);
-        ivBoss = findViewById(R.id.ivBoss);
-        tvCombatLog = findViewById(R.id.tvCombatLog);
 
+        ivBoss = findViewById(R.id.ivBoss);
+        ivHurt = findViewById(R.id.ivHurt);
+
+        tvCombatLog = findViewById(R.id.tvCombatLog);
         tvUserPp = findViewById(R.id.tvUserPp);
         tvChance = findViewById(R.id.tvChance);
         layoutAttempts = findViewById(R.id.layoutAttempts);
         btnAttack = findViewById(R.id.btnAttack);
 
+        // Pixel-art feel
+        ivBoss.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        ivBoss.setAdjustViewBounds(true);
+
+        if (ivHurt != null) {
+            ivHurt.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            ivHurt.setAdjustViewBounds(true);
+            ivHurt.setVisibility(View.GONE);
+        }
+
+        // extras from prep
         bossLevel = getIntent().getIntExtra("bossLevel", 1);
         effectivePp = getIntent().getIntExtra("effectivePp", 0);
         hitBonusPct = getIntent().getIntExtra("hitBonusPct", 0);
         extraTryPct = getIntent().getIntExtra("extraTryPct", 0);
+
+        // Start idle immediately
+        playBossAnim(R.drawable.boss_idle_anim);
 
         btnAttack.setEnabled(false);
         btnAttack.setOnClickListener(v -> doAttack());
@@ -82,6 +106,7 @@ public class BossFightActivity extends AppCompatActivity {
                 .addOnSuccessListener(userDoc -> {
                     Long lvl = userDoc.getLong("level");
                     bossLevel = (lvl != null) ? lvl.intValue() : bossLevel;
+
                     Timestamp lastLevelUp = userDoc.getTimestamp("lastLevelUpDate");
 
                     equipmentService.computeEffectiveStats(userDoc)
@@ -129,19 +154,20 @@ public class BossFightActivity extends AppCompatActivity {
     }
 
     private void bindUi(boolean animateHp) {
+        if (boss == null) return;
+
         tvBossLevel.setText("Boss (level " + boss.getLevel() + ")");
         tvBossHpText.setText(String.format(Locale.US, "HP: %d / %d", boss.getCurrentHp(), boss.getMaxHp()));
 
         tvUserPp.setText("Your PP: " + effectivePp);
         tvChance.setText(String.format(Locale.US, "Hit chance: %.0f%%", successRatePct));
 
-        // HP bar
         int pct = (boss.getMaxHp() <= 0) ? 0 : (int) Math.round((boss.getCurrentHp() * 100.0) / boss.getMaxHp());
         pct = Math.max(0, Math.min(100, pct));
+
         if (animateHp) animateProgress(pbBossHp, pbBossHp.getProgress(), pct);
         else pbBossHp.setProgress(pct);
 
-        // attempts orbs
         renderAttemptsOrbs(boss.getAttacksLeft(), maxAttacksThisBattle);
     }
 
@@ -164,20 +190,51 @@ public class BossFightActivity extends AppCompatActivity {
         if (boss.isDefeated() || boss.getAttacksLeft() <= 0) return;
 
         btnAttack.setEnabled(false);
+        cancelPendingUiCallbacks();
 
         int roll = random.nextInt(101); // 0..100
         bossService.performAttack(boss, effectivePp, successRatePct, roll)
                 .addOnSuccessListener(hit -> {
                     tvCombatLog.setText(hit ? "Hit!" : "Miss!");
-                    if (hit) bossHitAnim();
-                    else bossMissAnim();
+
+                    if (hit) {
+                        // Overlay hurt (stops/hides idle underneath), then return to idle/death
+                        playOverlayAnim(R.drawable.boss_hurt_anim, () -> {
+                            if (boss.isDefeated()) {
+                                tvCombatLog.setText("Boss defeated!");
+                                long deathMs = playBossAnim(R.drawable.boss_death_anim);
+                                endBattleRunnable = this::endBattle;
+                                ivBoss.postDelayed(endBattleRunnable, Math.max(250, deathMs + 30));
+                            } else {
+                                playBossAnim(R.drawable.boss_idle_anim);
+                                if (boss.getAttacksLeft() > 0) btnAttack.setEnabled(true);
+                            }
+                        });
+
+                    } else {
+                        // MISS on boss (no overlay), then idle
+                        long missMs = playBossAnim(R.drawable.boss_miss_anim);
+                        resumeAfterAnimRunnable = () -> {
+                            playBossAnim(R.drawable.boss_idle_anim);
+
+                            if (boss.getAttacksLeft() <= 0) {
+                                tvCombatLog.setText("No attempts left.");
+                                endBattle();
+                            } else {
+                                btnAttack.setEnabled(true);
+                            }
+                        };
+                        ivBoss.postDelayed(resumeAfterAnimRunnable, Math.max(250, missMs + 30));
+                    }
 
                     bindUi(true);
 
-                    if (boss.isDefeated() || boss.getAttacksLeft() <= 0) {
-                        endBattle();
-                    } else {
-                        btnAttack.setEnabled(true);
+                    // If no attempts left after this action, end battle (don’t interrupt animation)
+                    if (boss.getAttacksLeft() <= 0 && !boss.isDefeated()) {
+                        endBattleRunnable = () -> {
+                            if (!boss.isDefeated()) endBattle();
+                        };
+                        ivBoss.postDelayed(endBattleRunnable, 650);
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -186,16 +243,98 @@ public class BossFightActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Plays an overlay AnimationDrawable on ivHurt while hiding/stopping ivBoss underneath.
+     * This fixes the "idle still visible during hurt/miss" issue when frames have transparency.
+     */
+    private void playOverlayAnim(@DrawableRes int overlayAnimRes, @Nullable Runnable onOverlayFinished) {
+        if (ivHurt == null) {
+            // fallback: just play on boss directly
+            long ms = playBossAnim(overlayAnimRes);
+            resumeAfterAnimRunnable = onOverlayFinished;
+            ivBoss.postDelayed(resumeAfterAnimRunnable, Math.max(250, ms + 30));
+            return;
+        }
+
+        // stop idle under it + hide
+        stopBossAnim();
+        ivBoss.setVisibility(View.INVISIBLE);
+
+        ivHurt.setVisibility(View.VISIBLE);
+        ivHurt.setImageResource(overlayAnimRes);
+
+        long overlayMs = startAndGetAnimDuration(ivHurt);
+
+        hideOverlayRunnable = () -> {
+            ivHurt.setVisibility(View.GONE);
+            ivBoss.setVisibility(View.VISIBLE);
+            if (onOverlayFinished != null) onOverlayFinished.run();
+        };
+        ivHurt.postDelayed(hideOverlayRunnable, Math.max(250, overlayMs + 30));
+    }
+
+    private long playBossAnim(@DrawableRes int animRes) {
+        ivBoss.setImageResource(animRes);
+        bossAnim = null;
+
+        Drawable d = ivBoss.getDrawable();
+        if (d instanceof AnimationDrawable) {
+            bossAnim = (AnimationDrawable) d;
+            bossAnim.stop();
+            bossAnim.start();
+            return sumAnimDuration(bossAnim);
+        }
+        return 0L;
+    }
+
+    private void stopBossAnim() {
+        if (bossAnim != null) {
+            bossAnim.stop();
+        }
+    }
+
+    private long startAndGetAnimDuration(ImageView iv) {
+        Drawable d = iv.getDrawable();
+        if (d instanceof AnimationDrawable) {
+            AnimationDrawable ad = (AnimationDrawable) d;
+            ad.stop();
+            ad.start();
+            return sumAnimDuration(ad);
+        }
+        return 0L;
+    }
+
+    private long sumAnimDuration(AnimationDrawable ad) {
+        long sum = 0L;
+        for (int i = 0; i < ad.getNumberOfFrames(); i++) {
+            sum += ad.getDuration(i);
+        }
+        return sum;
+    }
+
+    private void cancelPendingUiCallbacks() {
+        if (resumeAfterAnimRunnable != null) {
+            ivBoss.removeCallbacks(resumeAfterAnimRunnable);
+            resumeAfterAnimRunnable = null;
+        }
+        if (endBattleRunnable != null) {
+            ivBoss.removeCallbacks(endBattleRunnable);
+            endBattleRunnable = null;
+        }
+        if (hideOverlayRunnable != null && ivHurt != null) {
+            ivHurt.removeCallbacks(hideOverlayRunnable);
+            hideOverlayRunnable = null;
+        }
+    }
+
     private void endBattle() {
         btnAttack.setEnabled(false);
         tvCombatLog.setText("Resolving rewards...");
 
         bossService.resolveBattleRewards(boss)
                 .addOnSuccessListener(result -> {
-                    // consume one-shot potion + one use of active clothes
                     equipmentRepo.consumeOneShotPotionsIfAny();
                     equipmentRepo.consumeAllActiveClothesOneUse();
-
                     openResult(result);
                 })
                 .addOnFailureListener(e -> {
@@ -205,28 +344,13 @@ public class BossFightActivity extends AppCompatActivity {
     }
 
     private void openResult(FightResult r) {
-        Intent i = new Intent(this, FightResultActivity.class);
+        android.content.Intent i = new android.content.Intent(this, FightResultActivity.class);
         i.putExtra("bossDefeated", r.bossDefeated);
         i.putExtra("coinsEarned", r.coinsEarned);
         i.putExtra("droppedItemName", r.droppedItemName);
         i.putExtra("isWeapon", r.isWeapon);
         startActivity(i);
         finish();
-    }
-
-    // --- Animations ---
-    private void bossHitAnim() {
-        TranslateAnimation shake = new TranslateAnimation(-8, 8, 0, 0);
-        shake.setDuration(120);
-        shake.setRepeatCount(3);
-        shake.setRepeatMode(TranslateAnimation.REVERSE);
-        ivBoss.startAnimation(shake);
-    }
-
-    private void bossMissAnim() {
-        ivBoss.animate().translationXBy(10f).setDuration(80).withEndAction(() ->
-                ivBoss.animate().translationXBy(-10f).setDuration(80).start()
-        ).start();
     }
 
     private void animateProgress(ProgressBar pb, int from, int to) {

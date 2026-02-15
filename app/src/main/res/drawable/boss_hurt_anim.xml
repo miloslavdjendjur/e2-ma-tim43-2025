@@ -1,0 +1,14 @@
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="true">
+    <item android:drawable="@drawable/boss_hurt00" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt01" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt02" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt03" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt04" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt05" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt06" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt07" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt08" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt09" android:duration="100"/>
+    <item android:drawable="@drawable/boss_hurt10" android:duration="100"/>
+</animation-list>

@@ -92,7 +92,7 @@
         <GridLayout
             android:id="@+id/gridSlots"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="345dp"
             android:layout_marginTop="10dp"
             android:columnCount="2"
             android:rowCount="3"
@@ -104,21 +104,21 @@
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/petronas_primary_container">
+                app:strokeColor="@color/petronas_primary_container"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:padding="12dp">
 
                     <ImageView
                         android:layout_width="26dp"
                         android:layout_height="26dp"
-                        android:src="@drawable/ic_slot_weapon"
-                        android:contentDescription="Weapon" />
+                        android:contentDescription="Weapon"
+                        android:src="@drawable/ic_slot_weapon" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -136,8 +136,8 @@
                             android:id="@+id/tvSlotWeapon"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="None"
-                            android:alpha="0.85" />
+                            android:alpha="0.85"
+                            android:text="None" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -148,21 +148,21 @@
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/petronas_primary_container">
+                app:strokeColor="@color/petronas_primary_container"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:padding="12dp">
 
                     <ImageView
                         android:layout_width="26dp"
                         android:layout_height="26dp"
-                        android:src="@drawable/ic_slot_shield"
-                        android:contentDescription="Shield" />
+                        android:contentDescription="Shield"
+                        android:src="@drawable/ic_slot_shield" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -180,8 +180,8 @@
                             android:id="@+id/tvSlotShield"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Inactive"
-                            android:alpha="0.85" />
+                            android:alpha="0.85"
+                            android:text="Inactive" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -192,21 +192,21 @@
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/petronas_primary_container">
+                app:strokeColor="@color/petronas_primary_container"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:padding="12dp">
 
                     <ImageView
                         android:layout_width="26dp"
                         android:layout_height="26dp"
-                        android:src="@drawable/ic_slot_gloves"
-                        android:contentDescription="Gloves" />
+                        android:contentDescription="Gloves"
+                        android:src="@drawable/ic_slot_gloves" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -224,8 +224,8 @@
                             android:id="@+id/tvSlotGloves"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Inactive"
-                            android:alpha="0.85" />
+                            android:alpha="0.85"
+                            android:text="Inactive" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -236,21 +236,21 @@
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/petronas_primary_container">
+                app:strokeColor="@color/petronas_primary_container"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:padding="12dp">
 
                     <ImageView
                         android:layout_width="26dp"
                         android:layout_height="26dp"
-                        android:src="@drawable/ic_slot_boots"
-                        android:contentDescription="Boots" />
+                        android:contentDescription="Boots"
+                        android:src="@drawable/ic_slot_boots" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -268,8 +268,8 @@
                             android:id="@+id/tvSlotBoots"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Inactive"
-                            android:alpha="0.85" />
+                            android:alpha="0.85"
+                            android:text="Inactive" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -280,21 +280,21 @@
                 android:layout_height="wrap_content"
                 android:layout_columnSpan="2"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/petronas_primary_container">
+                app:strokeColor="@color/petronas_primary_container"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:padding="12dp">
 
                     <ImageView
                         android:layout_width="26dp"
                         android:layout_height="26dp"
-                        android:src="@drawable/ic_slot_potion"
-                        android:contentDescription="Potion" />
+                        android:contentDescription="Potion"
+                        android:src="@drawable/ic_slot_potion" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -312,8 +312,8 @@
                             android:id="@+id/tvSlotPotion"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="None pending"
-                            android:alpha="0.85" />
+                            android:alpha="0.85"
+                            android:text="None pending" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
