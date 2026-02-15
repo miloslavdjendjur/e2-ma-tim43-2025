@@ -426,7 +426,14 @@ public class BossService {
                 int cRoll = random.nextInt(3);
                 ClothesType cType = (cRoll == 0) ? ClothesType.GLOVES : (cRoll == 1) ? ClothesType.SHIELD : ClothesType.BOOTS;
 
-                int value = (cType == ClothesType.BOOTS) ? 25 : 10;
+                // Spec:
+                //  - Gloves: +10% PP
+                //  - Shield: +10% max HP
+                //  - Boots:  +40% chance for ONE extra attack in the next fight (per pair)
+                // NOTE: value is stored as a percentage. UI/Battle start logic should interpret
+                // BOOTS value as "extra attack chance %" (not a flat stat like PP/HP).
+                int value = (cType == ClothesType.BOOTS) ? 40 : 10;
+
 
                 return equipmentRepo.equipClothes(cType, value)
                         .continueWith(t -> new FightResult(victory, coinsToAdd, cType.name(), false,
@@ -436,6 +443,18 @@ public class BossService {
 
         return tcs.getTask();
     }
+
+    /**
+     * Spec: Boots grant a % chance to gain ONE extra attack for the next fight.
+     */
+    public int computeAttacksForBattle(int baseAttacks, Integer bootsChancePercent) {
+        int attacks = Math.max(1, baseAttacks);
+        if (bootsChancePercent == null || bootsChancePercent <= 0) return attacks;
+        int roll = random.nextInt(100); // 0..99
+        if (roll < bootsChancePercent) attacks += 1;
+        return attacks;
+    }
+
 
     public BossRepository getRepo() { return bossRepo; }
 }

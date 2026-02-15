@@ -137,21 +137,33 @@ public class BossFightActivity extends AppCompatActivity {
     }
 
     private void startOrResumeBoss() {
-        int attacks = 5;
-        if (random.nextInt(100) < extraTryPct) attacks += 1;
-        maxAttacksThisBattle = attacks;
 
-        bossService.getBossForBattle(bossLevel, attacks)
-                .addOnSuccessListener(b -> {
-                    boss = b;
-                    bindUi(true);
-                    btnAttack.setEnabled(true);
+        equipmentService.repo().getUser()
+                .onSuccessTask(userDoc -> equipmentService.computeEffectiveStats(userDoc))
+                .addOnSuccessListener(stats -> {
+
+                    int baseAttacks = 5;
+                    int bootsChancePercent = stats.extraTryPct;
+
+                    int attacksForThisBattle =
+                            bossService.computeAttacksForBattle(baseAttacks, bootsChancePercent);
+
+                    bossService.getBossForBattle(bossLevel, attacksForThisBattle)
+                            .addOnSuccessListener(b -> {
+                                boss = b;
+                                bindUi(true);
+                                btnAttack.setEnabled(true);
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to load boss", Toast.LENGTH_SHORT).show();
+                                finish();
+                            });
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to load boss", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed to load equipment stats", Toast.LENGTH_SHORT).show()
+                );
     }
+
 
     private void bindUi(boolean animateHp) {
         if (boss == null) return;
@@ -355,7 +367,7 @@ public class BossFightActivity extends AppCompatActivity {
 
     private void animateProgress(ProgressBar pb, int from, int to) {
         ObjectAnimator anim = ObjectAnimator.ofInt(pb, "progress", from, to);
-        anim.setDuration(300);
+        anim.setDuration(400);
         anim.setInterpolator(new DecelerateInterpolator());
         anim.start();
     }

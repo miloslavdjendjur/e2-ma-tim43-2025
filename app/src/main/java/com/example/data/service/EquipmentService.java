@@ -2,8 +2,10 @@ package com.example.data.service;
 
 import androidx.annotation.NonNull;
 
+import com.example.data.model.equipment.type.ClothesType;
 import com.example.data.repo.EquipmentRepository;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.TaskCompletionSource;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QueryDocumentSnapshot;

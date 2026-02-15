@@ -38,12 +38,9 @@ public final class LevelingService {
         while (user.xp >= currentThreshold) {
             user.xp -= currentThreshold;
             user.level++;
-
             user.lastLevelUpDate = Timestamp.now();
-
             user.pp = nextPp(user.pp);
             user.title = TitleBook.titleFor(user.level);
-
             currentThreshold = nextXpThreshold(currentThreshold);
             leveledUp = true;
         }

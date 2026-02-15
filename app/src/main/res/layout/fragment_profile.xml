@@ -107,7 +107,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:text="Boss fight (TEST)" />
+            android:text="Boss fight" />
 
         <Button
             android:id="@+id/btnChangePass"

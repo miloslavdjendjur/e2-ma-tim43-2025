@@ -1,5 +1,6 @@
 package com.example.ui.task;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.PopupMenu;
@@ -9,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -362,10 +364,14 @@ public class AllTasksFragment extends Fragment {
                 return;
             }
             taskService.updateTaskOccurrenceStatus(task.getId(), occKey, newStatus, new TaskService.OnTaskActionEventListener() {
-                @Override public void onSuccess(String message) {
-                    if (!isAdded()) return;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    loadData();
+                @Override
+                public void onSuccess(String message) {
+                    if ("LEVEL_UP".equals(message)) {
+                        Intent i = new Intent(getContext(), com.example.ui.boss.BossPrepActivity.class);
+                        startActivity(i);
+                    } else {
+                        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    }
                 }
                 @Override public void onError(String error) {
                     if (!isAdded()) return;
@@ -377,8 +383,15 @@ public class AllTasksFragment extends Fragment {
             taskService.updateTaskStatus(task.getId(), newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override public void onSuccess(String message) {
                     if (!isAdded()) return;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    loadData();
+                    if ("LEVEL_UP".equals(message)) {
+                        Intent i = new Intent(getContext(), com.example.myapplication.MainActivity.class);
+                        i.putExtra("openTab", "profile");
+                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        startActivity(i);
+                    } else {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                        loadData();
+                    }
                 }
                 @Override public void onError(String error) {
                     if (!isAdded()) return;
@@ -406,8 +419,15 @@ public class AllTasksFragment extends Fragment {
                         taskService.updateTaskOccurrenceStatus(task.getId(), occKey, picked, new TaskService.OnTaskActionEventListener() {
                             @Override public void onSuccess(String message) {
                                 if (!isAdded()) return;
-                                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                                loadData();
+                                if ("LEVEL_UP".equals(message)) {
+                                    Intent i = new Intent(getContext(), com.example.myapplication.MainActivity.class);
+                                    i.putExtra("openTab", "profile");
+                                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                    startActivity(i);
+                                } else {
+                                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                                    loadData();
+                                }
                             }
                             @Override public void onError(String error) {
                                 if (!isAdded()) return;
@@ -417,10 +437,14 @@ public class AllTasksFragment extends Fragment {
                         });
                     } else {
                         taskService.updateTaskStatus(task.getId(), picked, new TaskService.OnTaskActionEventListener() {
-                            @Override public void onSuccess(String message) {
-                                if (!isAdded()) return;
-                                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                                loadData();
+                            @Override
+                            public void onSuccess(String message) {
+                                if ("LEVEL_UP".equals(message)) {
+                                    Intent i = new Intent(getContext(), com.example.ui.boss.BossPrepActivity.class);
+                                    startActivity(i);
+                                } else {
+                                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                                }
                             }
                             @Override public void onError(String error) {
                                 if (!isAdded()) return;
