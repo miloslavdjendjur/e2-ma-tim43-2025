@@ -46,7 +46,6 @@ public class ProfileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Inicijalizacija UI komponenti
         ivAvatar = view.findViewById(R.id.ivAvatar);
         ivQr = view.findViewById(R.id.ivQr);
         tvUsername = view.findViewById(R.id.tvUsername);
@@ -63,17 +62,22 @@ public class ProfileFragment extends Fragment {
         btnLogout = view.findViewById(R.id.btnLogout);
         btnBossFight = view.findViewById(R.id.btnBossFight);
 
-        // Dugme je inicijalno skriveno
+        // Inicijalno sakrij dugme dok se podaci ne učitaju
         btnBossFight.setVisibility(View.GONE);
 
         btnLogout.setOnClickListener(v -> doLogout());
-
-        // Klik na dugme otvara Boss Preparation Activity
         btnBossFight.setOnClickListener(v -> {
             Intent i = new Intent(requireContext(), BossPrepActivity.class);
             startActivity(i);
         });
 
+        load();
+    }
+
+    // Kada se vratiš iz borbe, onResume će ponovo pozvati load()
+    @Override
+    public void onResume() {
+        super.onResume();
         load();
     }
 
@@ -89,13 +93,14 @@ public class ProfileFragment extends Fragment {
         User u = snap.toObject(User.class);
         if (u == null) return;
 
-        // Prikaz avatara
+        // Avatar
         int resId = getResources().getIdentifier(
                 "avatar_" + u.avatarIndex, "drawable", requireContext().getPackageName());
         if (resId != 0) ivAvatar.setImageResource(resId);
 
         tvUsername.setText(u.username != null ? u.username : "");
 
+        // QR Kod
         try {
             String qr = (u.qrId != null && !u.qrId.isEmpty()) ? u.qrId : u.uid;
             BarcodeEncoder encoder = new BarcodeEncoder();
@@ -103,6 +108,7 @@ public class ProfileFragment extends Fragment {
             ivQr.setImageBitmap(bitmap);
         } catch (Exception ignored) {}
 
+        // Level & XP progress
         int threshold = LevelingService.getThresholdForLevel(u.level);
         int xp = (int) u.xp;
         int pct = threshold <= 0 ? 0 : (int) Math.round((xp * 100.0) / threshold);
@@ -117,36 +123,36 @@ public class ProfileFragment extends Fragment {
         tvCoins.setText("Coins: " + u.coins);
         tvBadges.setText("Badges: " + u.badges);
 
+        // Pozivamo pročišćenu metodu za proveru bosa
         setupBossButton(u);
     }
 
-    /**
-     * Upravlja vidljivošću dugmeta za borbu sa bosom prema specifikaciji.
-     * Dugme se pojavljuje tek na nivou 2 i nestaje ako je bos poražen.
-     */
     private void setupBossButton(User user) {
+        // Spec (5. Borba sa bosom): Korisnik se suočava sa bosom tek nakon pređenog nivoa.
+        // Pošto korisnici počinju od nivoa 1, prva borba je na nivou 2.
         if (user.level < 2) {
             btnBossFight.setVisibility(View.GONE);
             return;
         }
 
-        bossRepo.getCurrentBoss().addOnSuccessListener(doc -> {
+        bossRepo.getCurrentBoss().addOnSuccessListener(bossDoc -> {
             if (!isAdded()) return;
 
-            if (doc != null && doc.exists()) {
-                Boss currentBoss = doc.toObject(Boss.class);
-
+            if (bossDoc != null && bossDoc.exists()) {
+                Boss currentBoss = bossDoc.toObject(Boss.class);
                 if (currentBoss != null) {
-                    if (!currentBoss.isDefeated()) {
-                        btnBossFight.setVisibility(View.VISIBLE);
-                    } else {
-                        btnBossFight.setVisibility(View.GONE);
-                    }
+                    // LOGIKA: Dugme je vidljivo ako:
+                    // 1. Korisnik je na većem nivou od bosa u bazi (čeka ga novi izazov)
+                    // 2. Korisnik je na istom nivou kao bos, ali taj bos još nije poražen
+                    boolean canFight = (user.level > currentBoss.getLevel()) ||
+                            (user.level == currentBoss.getLevel() && !currentBoss.isDefeated());
+
+                    btnBossFight.setVisibility(canFight ? View.VISIBLE : View.GONE);
                 } else {
                     btnBossFight.setVisibility(View.VISIBLE);
                 }
             } else {
-                // Ako dokument ne postoji, a nivo je 2+, korisnik ima pravo na borbu
+                // Ako bos dokument ne postoji, a korisnik je nivo 2+, on mora imati borbu
                 btnBossFight.setVisibility(View.VISIBLE);
             }
         }).addOnFailureListener(e -> {
