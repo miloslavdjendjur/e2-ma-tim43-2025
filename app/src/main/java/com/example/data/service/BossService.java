@@ -66,13 +66,14 @@ public class BossService {
                     if (doc != null && doc.exists()) current = doc.toObject(Boss.class);
 
                     Boss bossToFight;
-                    if (current != null && !current.isDefeated()) {
+                    if (current != null && !current.isDefeated() && current.getLevel() == expectedBossLevel) {
                         bossToFight = current;
                         bossToFight.setStatus("ACTIVE");
                     } else {
                         long maxHp = calculateMaxHp(expectedBossLevel);
                         bossToFight = new Boss(expectedBossLevel, maxHp);
                     }
+
 
                     bossToFight.setAttacksLeft(Math.max(1, attacksForThisBattle));
 

@@ -165,7 +165,7 @@ public class ProfileFragment extends Fragment {
     private void doLogout() {
         FirebaseAuth.getInstance().signOut();
         Intent i = new Intent(requireContext(), LoginActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(i);
     }
 }

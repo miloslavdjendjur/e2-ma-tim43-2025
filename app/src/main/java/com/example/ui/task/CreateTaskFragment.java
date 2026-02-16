@@ -13,6 +13,9 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -278,8 +281,28 @@ public class CreateTaskFragment extends Fragment {
 
         Task t = new Task();
 
-        if (baseTask != null) t.setStatus(baseTask.getStatus() != null ? baseTask.getStatus() : "active");
-        else t.setStatus("active");
+        // mora da sačuva ID, u suprotnom update puca ("Task id is missing.")
+        if (baseTask != null) {
+            t.setId(baseTask.getId());
+
+            // Sačuvaj status ako postoji (da ti ne resetuje završene taskove na "active")
+            if (baseTask.getStatus() != null) t.setStatus(baseTask.getStatus());
+            else t.setStatus("active");
+
+            // Sačuvaj recurring tracking da edit ne obriše istoriju izvršavanja
+            t.setOccurrenceStatuses(baseTask.getOccurrenceStatuses());
+            t.setOccurrenceXpProcessed(baseTask.getOccurrenceXpProcessed());
+            t.setXpProcessed(baseTask.isXpProcessed());
+        } else {
+            t.setStatus("active");
+        }
+
+        FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
+        if (fu == null) {
+            Toast.makeText(requireContext(), "Not logged in", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+        t.setUserId(fu.getUid());
 
         t.setName(name);
         t.setDescription(etDesc.getText().toString().trim());
@@ -306,6 +329,7 @@ public class CreateTaskFragment extends Fragment {
             }
 
             t.setInterval(interval);
+
             if (spinnerUnit.getSelectedItem() != null) t.setUnit(spinnerUnit.getSelectedItem().toString());
             else t.setUnit("Day");
 
@@ -322,18 +346,28 @@ public class CreateTaskFragment extends Fragment {
                 t.setEndDate(null);
             }
 
+            // recurring nema executionTime
             t.setExecutionTime(null);
+
         } else {
             t.setType("SINGLE");
             t.setExecutionTime(new com.google.firebase.Timestamp(selectedDate.getTime()));
+
+            // single nema recurring polja
             t.setStartDate(null);
             t.setEndDate(null);
             t.setInterval(0);
             t.setUnit(null);
+
+            // Ako edituješ SINGLE, sačuvaj xpProcessed da ne može ponovo da dobije XP za isti task
+            if (baseTask != null) {
+                t.setXpProcessed(baseTask.isXpProcessed());
+            }
         }
 
         return t;
     }
+
 
     private int getDifficultyXp() {
         int id = rgDifficulty.getCheckedRadioButtonId();
