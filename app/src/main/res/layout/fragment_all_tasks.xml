@@ -44,6 +44,35 @@
             app:checkedIconVisible="false" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
+    <!-- Status filter -->
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggleStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStatusAll"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="All"
+            app:checkedIconVisible="false" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStatusHideDone"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Hide DONE"
+            app:checkedIconVisible="false" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+
     <!-- Time range filter -->
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/toggleRange"
