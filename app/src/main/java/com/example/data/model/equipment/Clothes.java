@@ -9,5 +9,6 @@ public class Clothes {
     public int usesLeft;         // 2 borbe
     public int stackedPercent;   // akumulirani procenat efekta (npr. 20 za 2 para rukavica)
 
+    public int count;
     public Clothes() {}
 }

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/layoutReceived"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#E0E0E0"
+        android:padding="10dp"
+        android:layout_gravity="start"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSenderName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:textSize="12sp"
+            android:text="Janko" />
+
+        <TextView
+            android:id="@+id/tvMessageReceived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:text="Tekst poruke..." />
+
+        <TextView
+            android:id="@+id/tvTimeReceived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:layout_marginTop="4dp"
+            android:text="12:30" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#DCF8C6"
+        android:padding="10dp"
+        android:layout_gravity="end"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvMessageSent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:text="Moja poruka..." />
+
+        <TextView
+            android:id="@+id/tvTimeSent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:layout_marginTop="4dp"
+            android:layout_gravity="end"
+            android:text="12:31" />
+    </LinearLayout>
+
+</LinearLayout>

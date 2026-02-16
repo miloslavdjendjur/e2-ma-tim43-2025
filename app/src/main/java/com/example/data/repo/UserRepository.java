@@ -1,5 +1,7 @@
 package com.example.data.repo;
 
+import com.example.data.model.Alliance;
+import com.example.data.model.AllianceInvite;
 import com.example.data.model.User;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.*;
@@ -74,6 +76,85 @@ public class UserRepository {
         return com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
                 ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
+    }
+
+    // FRIENDS
+    public Task<DocumentSnapshot> searchUserByUsername(String username) {
+        return db.collection("usernames").document(username).get()
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful() || !task.getResult().exists()) {
+                        throw new FirebaseFirestoreException("Korisnik nije pronađen", FirebaseFirestoreException.Code.NOT_FOUND);
+                    }
+                    String uid = task.getResult().getString("uid");
+                    return getUser(uid);
+                });
+    }
+
+    public Task<Void> addFriend(String myUid, User friend) {
+        // Dodajemo prijatelja u moju listu
+        DocumentReference myFriendRef = db.collection("users").document(myUid)
+                .collection("friends").document(friend.uid);
+
+        Map<String, Object> friendData = new HashMap<>();
+        friendData.put("uid", friend.uid);
+        friendData.put("username", friend.username);
+        friendData.put("avatarIndex", friend.avatarIndex);
+
+        return myFriendRef.set(friendData);
+    }
+
+    public Query getFriendsQuery(String myUid) {
+        return db.collection("users").document(myUid).collection("friends");
+    }
+
+    // ALLIANCE
+    public Task<Void> createAlliance(String name, User leader) {
+        DocumentReference newAllianceRef = db.collection("alliances").document();
+        String allianceId = newAllianceRef.getId();
+
+        Alliance alliance = new Alliance(allianceId, name, leader.uid, java.util.Collections.singletonList(leader.uid));
+
+        WriteBatch batch = db.batch();
+        batch.set(newAllianceRef, alliance);
+        batch.update(db.collection("users").document(leader.uid), "allianceId", allianceId);
+
+        return batch.commit();
+    }
+
+    public Task<Void> inviteToAlliance(String targetUid, Alliance alliance, String myName) {
+        DocumentReference inviteRef = db.collection("users").document(targetUid)
+                .collection("alliance_invites").document(alliance.id);
+
+        AllianceInvite invite = new AllianceInvite(alliance.id, alliance.name, alliance.leaderUid, myName);
+        return inviteRef.set(invite);
+    }
+
+    public Task<Void> respondToInvite(String myUid, AllianceInvite invite, boolean accept) {
+        WriteBatch batch = db.batch();
+        DocumentReference inviteRef = db.collection("users").document(myUid)
+                .collection("alliance_invites").document(invite.allianceId);
+
+        batch.delete(inviteRef);
+
+        if (accept) {
+            DocumentReference allianceRef = db.collection("alliances").document(invite.allianceId);
+            DocumentReference userRef = db.collection("users").document(myUid);
+
+            batch.update(allianceRef, "members", FieldValue.arrayUnion(myUid));
+
+            batch.update(userRef, "allianceId", invite.allianceId);
+        }
+
+        return batch.commit();
+    }
+
+    public Task<Alliance> getAlliance(String allianceId) {
+        return db.collection("alliances").document(allianceId).get()
+                .continueWith(task -> task.getResult().toObject(Alliance.class));
+    }
+
+    public Query getInvitesQuery(String myUid) {
+        return db.collection("users").document(myUid).collection("alliance_invites");
     }
 
 }
