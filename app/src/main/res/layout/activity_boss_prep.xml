@@ -372,8 +372,11 @@
             android:layout_marginTop="10dp"
             android:backgroundTint="#f96b80"
             android:text="Start boss fight"
+            app:iconPadding="10dp"
+            app:icon="@drawable/skull"
+            app:iconSize="25dp"
             app:iconGravity="textStart"
-            app:iconPadding="10dp" />
+            app:iconTint="#FFFFFF"/>
 
         <!-- Potential rewards -->
         <com.google.android.material.card.MaterialCardView

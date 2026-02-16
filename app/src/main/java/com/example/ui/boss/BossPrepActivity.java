@@ -263,8 +263,10 @@ public class BossPrepActivity extends AppCompatActivity {
     }
 
     private void startFight() {
+        int bossLevelToFight = Math.max(1, userLevel - 1);
+
         Intent i = new Intent(this, BossFightActivity.class);
-        i.putExtra("bossLevel", userLevel);
+        i.putExtra("bossLevel", bossLevelToFight);
         i.putExtra("effectivePp", effectivePp);
         i.putExtra("hitBonusPct", hitBonusPct);
         i.putExtra("extraTryPct", extraTryPct);

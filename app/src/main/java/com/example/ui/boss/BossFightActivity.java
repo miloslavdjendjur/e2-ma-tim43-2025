@@ -3,6 +3,10 @@ package com.example.ui.boss;
 import android.animation.ObjectAnimator;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
@@ -28,7 +32,7 @@ import com.google.firebase.Timestamp;
 import java.util.Locale;
 import java.util.Random;
 
-public class BossFightActivity extends AppCompatActivity {
+public class BossFightActivity extends AppCompatActivity implements SensorEventListener {
 
     private final BossService bossService = new BossService();
     private final EquipmentRepository equipmentRepo = new EquipmentRepository();
@@ -57,6 +61,20 @@ public class BossFightActivity extends AppCompatActivity {
     private Runnable resumeAfterAnimRunnable;
     private Runnable endBattleRunnable;
     private Runnable hideOverlayRunnable;
+
+    // =========================
+    // SHAKE SENSOR (like FightResultActivity)
+    // =========================
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+
+    private long lastShakeMs = 0;
+    private boolean gravityInitialized = false;
+    private final float[] gravity = new float[]{0f, 0f, 0f};
+
+    private static final float ALPHA = 0.8f;               // low-pass
+    private static final float SHAKE_THRESHOLD_MS2 = 3.0f; // emulator-friendly
+    private static final long SHAKE_DEBOUNCE_MS = 700;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -95,11 +113,84 @@ public class BossFightActivity extends AppCompatActivity {
         // Start idle immediately
         playBossAnim(R.drawable.boss_idle_anim);
 
+        // 🔥 Spec: attack is triggered by SHAKE, not button click
         btnAttack.setEnabled(false);
-        btnAttack.setOnClickListener(v -> doAttack());
+        btnAttack.setOnClickListener(v ->
+                Toast.makeText(this, "Shake your phone to attack!", Toast.LENGTH_SHORT).show()
+        );
+
+        tvCombatLog.setText("Shake to attack.");
+
+        // Sensor setup
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        if (sensorManager != null) {
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
 
         loadAndStartBattle();
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // register sensor while battle is active
+        if (sensorManager != null && accelerometer != null) {
+            gravityInitialized = false;
+            lastShakeMs = System.currentTimeMillis(); // cooldown to prevent instant trigger
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (sensorManager != null) sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        // Only react if we can actually attack now
+        if (boss == null) return;
+        if (!btnAttack.isEnabled()) return;
+        if (boss.isDefeated() || boss.getAttacksLeft() <= 0) return;
+
+        // Initialize gravity baseline on first event -> avoids instant trigger
+        if (!gravityInitialized) {
+            gravity[0] = event.values[0];
+            gravity[1] = event.values[1];
+            gravity[2] = event.values[2];
+            gravityInitialized = true;
+            return;
+        }
+
+        float x = event.values[0];
+        float y = event.values[1];
+        float z = event.values[2];
+
+        // Low-pass filter (gravity)
+        gravity[0] = ALPHA * gravity[0] + (1 - ALPHA) * x;
+        gravity[1] = ALPHA * gravity[1] + (1 - ALPHA) * y;
+        gravity[2] = ALPHA * gravity[2] + (1 - ALPHA) * z;
+
+        // High-pass (linear accel)
+        float linX = x - gravity[0];
+        float linY = y - gravity[1];
+        float linZ = z - gravity[2];
+
+        float linearMag = (float) Math.sqrt(linX * linX + linY * linY + linZ * linZ);
+
+        long now = System.currentTimeMillis();
+        if (linearMag > SHAKE_THRESHOLD_MS2 && (now - lastShakeMs) > SHAKE_DEBOUNCE_MS) {
+            lastShakeMs = now;
+
+            // Shake triggers the attack
+            doAttack();
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) { }
 
     private void loadAndStartBattle() {
         equipmentRepo.getUser()
@@ -137,7 +228,6 @@ public class BossFightActivity extends AppCompatActivity {
     }
 
     private void startOrResumeBoss() {
-
         equipmentService.repo().getUser()
                 .onSuccessTask(userDoc -> equipmentService.computeEffectiveStats(userDoc))
                 .addOnSuccessListener(stats -> {
@@ -148,11 +238,14 @@ public class BossFightActivity extends AppCompatActivity {
                     int attacksForThisBattle =
                             bossService.computeAttacksForBattle(baseAttacks, bootsChancePercent);
 
+                    maxAttacksThisBattle = attacksForThisBattle;
+
                     bossService.getBossForBattle(bossLevel, attacksForThisBattle)
                             .addOnSuccessListener(b -> {
                                 boss = b;
                                 bindUi(true);
                                 btnAttack.setEnabled(true);
+                                tvCombatLog.setText("Shake to attack.");
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(this, "Failed to load boss", Toast.LENGTH_SHORT).show();
@@ -163,7 +256,6 @@ public class BossFightActivity extends AppCompatActivity {
                         Toast.makeText(this, "Failed to load equipment stats", Toast.LENGTH_SHORT).show()
                 );
     }
-
 
     private void bindUi(boolean animateHp) {
         if (boss == null) return;
@@ -204,7 +296,7 @@ public class BossFightActivity extends AppCompatActivity {
         btnAttack.setEnabled(false);
         cancelPendingUiCallbacks();
 
-        int roll = random.nextInt(101); // 0..100
+        int roll = random.nextInt(101); // 0..100 (spec)
         bossService.performAttack(boss, effectivePp, successRatePct, roll)
                 .addOnSuccessListener(hit -> {
                     tvCombatLog.setText(hit ? "Hit!" : "Miss!");
@@ -256,7 +348,6 @@ public class BossFightActivity extends AppCompatActivity {
     }
 
     /**
-     * Plays an overlay AnimationDrawable on ivHurt while hiding/stopping ivBoss underneath.
      * This fixes the "idle still visible during hurt/miss" issue when frames have transparency.
      */
     private void playOverlayAnim(@DrawableRes int overlayAnimRes, @Nullable Runnable onOverlayFinished) {
