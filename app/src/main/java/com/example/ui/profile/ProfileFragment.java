@@ -136,6 +136,7 @@ public class ProfileFragment extends Fragment {
                 .addOnSuccessListener(bossDoc -> {
                     if (!isAdded()) return;
 
+                    // Ako nema boss dokumenta -> dozvoli ulazak (spawn-ovaće se novi)
                     if (bossDoc == null || !bossDoc.exists()) {
                         btnBossFight.setVisibility(View.VISIBLE);
                         return;
@@ -147,18 +148,28 @@ public class ProfileFragment extends Fragment {
                         return;
                     }
 
-                    String st = currentBoss.getStatus();
-                    boolean defeated = currentBoss.isDefeated() || "DEFEATED".equalsIgnoreCase(st);
+                    String status = currentBoss.getStatus();
+                    if (status == null) status = "";
 
+                    // Završena stanja borbe
+                    boolean finished =
+                            currentBoss.isDefeated()
+                                    || "DEFEATED".equalsIgnoreCase(status)
+                                    || "ESCAPED".equalsIgnoreCase(status);
+
+                    // Boss mora da bude za trenutni user level
                     boolean sameLevel = currentBoss.getLevel() == user.level;
 
-                    boolean canFight = sameLevel && !defeated;
+                    boolean canFight = sameLevel && !finished;
 
                     btnBossFight.setVisibility(canFight ? View.VISIBLE : View.GONE);
                 })
                 .addOnFailureListener(e -> {
-                    if (isAdded()) btnBossFight.setVisibility(View.GONE);
+                    if (isAdded()) {
+                        btnBossFight.setVisibility(View.GONE);
+                    }
                 });
+
     }
 
 
