@@ -1,5 +1,9 @@
 package com.example.ui.alliance;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -11,11 +15,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.NotificationCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.navigation.Navigation;
 
-import com.example.data.model.Alliance;
 import com.example.data.model.AllianceInvite;
 import com.example.data.model.User;
 import com.example.data.repo.UserRepository;
@@ -23,11 +28,6 @@ import com.example.myapplication.R;
 import com.example.ui.alliance.InvitesAdapter;
 import com.example.ui.friends.FriendsAdapter;
 import com.google.firebase.auth.FirebaseAuth;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.content.Context;
-import android.os.Build;
-import androidx.core.app.NotificationCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,13 +38,12 @@ public class AllianceFragment extends Fragment {
     private String myUid;
     private User currentUser;
 
-    // UI elementi
     private LinearLayout layoutNoAlliance, layoutHasAlliance;
     private TextView tvAllianceName;
     private RecyclerView rvInvites, rvMembers;
     private Button btnCreateAlliance;
+    private Button btnOpenChat;
 
-    // Adapteri
     private InvitesAdapter invitesAdapter;
     private FriendsAdapter membersAdapter;
 
@@ -52,6 +51,7 @@ public class AllianceFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         myUid = FirebaseAuth.getInstance().getUid();
 
         layoutNoAlliance = view.findViewById(R.id.layoutNoAlliance);
@@ -60,10 +60,19 @@ public class AllianceFragment extends Fragment {
         rvInvites = view.findViewById(R.id.rvInvites);
         rvMembers = view.findViewById(R.id.rvMembers);
         btnCreateAlliance = view.findViewById(R.id.btnCreateAlliance);
+        btnOpenChat = view.findViewById(R.id.btnOpenChat);
 
         setupAdapters();
 
         btnCreateAlliance.setOnClickListener(v -> showCreateDialog());
+
+        btnOpenChat.setOnClickListener(v -> {
+            if (currentUser != null && currentUser.allianceId != null) {
+                Bundle bundle = new Bundle();
+                bundle.putString("ALLIANCE_ID", currentUser.allianceId);
+                Navigation.findNavController(v).navigate(R.id.allianceChatFragment, bundle);
+            }
+        });
 
         checkUserStatus();
     }
@@ -82,10 +91,7 @@ public class AllianceFragment extends Fragment {
         if (myUid == null) return;
 
         repo.getCurrentUser().addOnSuccessListener(snap -> {
-            if (snap == null || !snap.exists()) {
-                Toast.makeText(getContext(), "GREŠKA: Nema profila!", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            if (snap == null || !snap.exists()) return;
 
             currentUser = snap.toObject(User.class);
             if (currentUser == null) return;
@@ -96,7 +102,7 @@ public class AllianceFragment extends Fragment {
                 loadAllianceDetails(currentUser.allianceId);
             }
         }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Greška: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -108,14 +114,11 @@ public class AllianceFragment extends Fragment {
             if (error != null) return;
 
             if (value != null) {
-                int count = value.size();
-
-                if (count > 0) {
-                    AllianceInvite latest = value.toObjects(AllianceInvite.class).get(0);
-                    sendSystemNotification("Novi poziv za Savez!", "Pozvao te je: " + latest.inviterName);
-                }
-
                 List<AllianceInvite> list = value.toObjects(AllianceInvite.class);
+                if (!list.isEmpty()) {
+                    AllianceInvite latest = list.get(0);
+                    // sendSystemNotification("Novi poziv", "Od: " + latest.inviterName);
+                }
                 invitesAdapter.setInvites(list);
             }
         });
@@ -127,9 +130,7 @@ public class AllianceFragment extends Fragment {
 
         repo.getAlliance(allianceId).addOnSuccessListener(alliance -> {
             if (alliance == null) return;
-
             tvAllianceName.setText(alliance.name);
-
             fetchMembersData(alliance.members);
         });
     }
@@ -172,23 +173,26 @@ public class AllianceFragment extends Fragment {
                 .addOnSuccessListener(v -> checkUserStatus());
     }
 
-
     private void sendSystemNotification(String title, String message) {
-        String channelId = "alliance_invites";
-        NotificationManager manager = (NotificationManager) requireContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        try {
+            String channelId = "alliance_invites";
+            NotificationManager manager = (NotificationManager) requireContext().getSystemService(Context.NOTIFICATION_SERVICE);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(channelId, "Pozivnice za savez", NotificationManager.IMPORTANCE_HIGH);
-            manager.createNotificationChannel(channel);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(channelId, "Pozivnice", NotificationManager.IMPORTANCE_HIGH);
+                manager.createNotificationChannel(channel);
+            }
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(requireContext(), channelId)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle(title)
+                    .setContentText(message)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setAutoCancel(true);
+
+            manager.notify(1, builder.build());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(requireContext(), channelId)
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // ILI TVOJA SLIKA
-                .setContentTitle(title)
-                .setContentText(message)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true); // Nestane kad klikneš (iako spec traži da se ne sklanja, ovo je lakše za sad)
-
-        manager.notify(1, builder.build());
     }
 }

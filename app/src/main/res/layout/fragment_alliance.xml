@@ -38,7 +38,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="8dp"/>
+
     </LinearLayout>
+
 
     <LinearLayout
         android:id="@+id/layoutHasAlliance"
@@ -57,6 +59,23 @@
             android:gravity="center"
             android:textColor="#4CAF50"/>
 
+        <Button
+            android:id="@+id/btnOpenChat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OTVORI CHAT SAVEZA"
+            android:backgroundTint="#2196F3"
+            android:layout_marginTop="16dp" />
+
+        <Button
+            android:id="@+id/btnStartMission"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ZAPOČNI MISIJU (Student 2)"
+            android:backgroundTint="#FF0000"
+            android:visibility="gone"
+            android:layout_gravity="center_horizontal"/>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -67,7 +86,8 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvMembers"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:layout_marginTop="8dp"/>
 
     </LinearLayout>

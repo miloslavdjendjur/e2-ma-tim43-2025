@@ -67,4 +67,13 @@
         <argument android:name="dateKey" app:argType="string" android:defaultValue="@null" />
     </fragment>
 
+    <fragment
+        android:id="@+id/allianceChatFragment"
+        android:name="com.example.ui.alliance.AllianceChatFragment"
+        android:label="Alliance Chat" >
+        <argument
+            android:name="ALLIANCE_ID"
+            app:argType="string" />
+    </fragment>
+
 </navigation>
