@@ -113,11 +113,12 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         // Start idle immediately
         playBossAnim(R.drawable.boss_idle_anim);
 
-        // 🔥 Spec: attack is triggered by SHAKE, not button click
+        // attack is triggered by SHAKE, not button click
         btnAttack.setEnabled(false);
-        btnAttack.setOnClickListener(v ->
-                Toast.makeText(this, "Shake your phone to attack!", Toast.LENGTH_SHORT).show()
-        );
+        btnAttack.setOnClickListener(v -> doAttack());
+//        btnAttack.setOnClickListener(v ->
+//                Toast.makeText(this, "Shake your phone to attack!", Toast.LENGTH_SHORT).show()
+//        );
 
         tvCombatLog.setText("Shake to attack.");
 
@@ -291,6 +292,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
 
     private void doAttack() {
         if (boss == null) return;
+        if (!btnAttack.isEnabled()) return;
         if (boss.isDefeated() || boss.getAttacksLeft() <= 0) return;
 
         btnAttack.setEnabled(false);
