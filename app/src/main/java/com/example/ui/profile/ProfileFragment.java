@@ -61,8 +61,6 @@ public class ProfileFragment extends Fragment {
         btnChangePass = view.findViewById(R.id.btnChangePass);
         btnLogout = view.findViewById(R.id.btnLogout);
         btnBossFight = view.findViewById(R.id.btnBossFight);
-
-        // Inicijalno sakrij dugme dok se podaci ne učitaju
         btnBossFight.setVisibility(View.GONE);
 
         btnLogout.setOnClickListener(v -> doLogout());
@@ -128,37 +126,41 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setupBossButton(User user) {
-        // Spec (5. Borba sa bosom): Korisnik se suočava sa bosom tek nakon pređenog nivoa.
-        // Pošto korisnici počinju od nivoa 1, prva borba je na nivou 2.
+        // Boss fight tek od level 2
         if (user.level < 2) {
             btnBossFight.setVisibility(View.GONE);
             return;
         }
 
-        bossRepo.getCurrentBoss().addOnSuccessListener(bossDoc -> {
-            if (!isAdded()) return;
+        bossRepo.getCurrentBoss()
+                .addOnSuccessListener(bossDoc -> {
+                    if (!isAdded()) return;
 
-            if (bossDoc != null && bossDoc.exists()) {
-                Boss currentBoss = bossDoc.toObject(Boss.class);
-                if (currentBoss != null) {
-                    // LOGIKA: Dugme je vidljivo ako:
-                    // 1. Korisnik je na većem nivou od bosa u bazi (čeka ga novi izazov)
-                    // 2. Korisnik je na istom nivou kao bos, ali taj bos još nije poražen
-                    boolean canFight = (user.level > currentBoss.getLevel()) ||
-                            (user.level == currentBoss.getLevel() && !currentBoss.isDefeated());
+                    if (bossDoc == null || !bossDoc.exists()) {
+                        btnBossFight.setVisibility(View.GONE);
+                        return;
+                    }
+
+                    Boss currentBoss = bossDoc.toObject(Boss.class);
+                    if (currentBoss == null) {
+                        btnBossFight.setVisibility(View.GONE);
+                        return;
+                    }
+
+                    String st = currentBoss.getStatus();
+                    boolean defeated = currentBoss.isDefeated() || "DEFEATED".equalsIgnoreCase(st);
+
+                    boolean sameLevel = currentBoss.getLevel() == user.level;
+
+                    boolean canFight = sameLevel && !defeated;
 
                     btnBossFight.setVisibility(canFight ? View.VISIBLE : View.GONE);
-                } else {
-                    btnBossFight.setVisibility(View.VISIBLE);
-                }
-            } else {
-                // Ako bos dokument ne postoji, a korisnik je nivo 2+, on mora imati borbu
-                btnBossFight.setVisibility(View.VISIBLE);
-            }
-        }).addOnFailureListener(e -> {
-            if (isAdded()) btnBossFight.setVisibility(View.GONE);
-        });
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) btnBossFight.setVisibility(View.GONE);
+                });
     }
+
 
     private void doLogout() {
         FirebaseAuth.getInstance().signOut();
