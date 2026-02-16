@@ -21,7 +21,7 @@ import com.example.data.model.User;
 import com.example.data.repo.UserRepository;
 import com.example.myapplication.R;
 import com.example.ui.alliance.InvitesAdapter;
-import com.example.ui.adapters.FriendsAdapter;
+import com.example.ui.friends.FriendsAdapter;
 import com.google.firebase.auth.FirebaseAuth;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -54,7 +54,6 @@ public class AllianceFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         myUid = FirebaseAuth.getInstance().getUid();
 
-        // 1. Povezivanje UI elemenata
         layoutNoAlliance = view.findViewById(R.id.layoutNoAlliance);
         layoutHasAlliance = view.findViewById(R.id.layoutHasAlliance);
         tvAllianceName = view.findViewById(R.id.tvAllianceName);
@@ -62,24 +61,18 @@ public class AllianceFragment extends Fragment {
         rvMembers = view.findViewById(R.id.rvMembers);
         btnCreateAlliance = view.findViewById(R.id.btnCreateAlliance);
 
-        // 2. INICIJALIZACIJA ADAPTERA (Mora pre bilo kakvog učitavanja podataka!)
         setupAdapters();
 
-        // 3. Listener za kreiranje saveza
         btnCreateAlliance.setOnClickListener(v -> showCreateDialog());
 
-        // 4. Učitavanje podataka o korisniku i savezu
         checkUserStatus();
     }
 
     private void setupAdapters() {
-        // --- Setup za Pozivnice ---
         invitesAdapter = new InvitesAdapter(this::acceptInvite);
         rvInvites.setLayoutManager(new LinearLayoutManager(getContext()));
         rvInvites.setAdapter(invitesAdapter);
 
-        // --- Setup za Članove saveza ---
-        // Koristimo FriendsAdapter jer on prikazuje sliku i ime, što nam treba
         membersAdapter = new FriendsAdapter();
         rvMembers.setLayoutManager(new LinearLayoutManager(getContext()));
         rvMembers.setAdapter(membersAdapter);
@@ -89,17 +82,14 @@ public class AllianceFragment extends Fragment {
         if (myUid == null) return;
 
         repo.getCurrentUser().addOnSuccessListener(snap -> {
-            // Provera da li dokument postoji
             if (snap == null || !snap.exists()) {
                 Toast.makeText(getContext(), "GREŠKA: Nema profila!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Pretvaranje u objekat
             currentUser = snap.toObject(User.class);
             if (currentUser == null) return;
 
-            // Logika: Da li ima savez ili ne?
             if (currentUser.allianceId == null || currentUser.allianceId.isEmpty()) {
                 showNoAllianceUI();
             } else {
@@ -110,23 +100,17 @@ public class AllianceFragment extends Fragment {
         });
     }
 
-    // --- LOGIKA KAD NEMAŠ SAVEZ ---
     private void showNoAllianceUI() {
         layoutNoAlliance.setVisibility(View.VISIBLE);
         layoutHasAlliance.setVisibility(View.GONE);
 
-        // Slušaj pozivnice u realnom vremenu
         repo.getInvitesQuery(myUid).addSnapshotListener((value, error) -> {
             if (error != null) return;
 
             if (value != null) {
                 int count = value.size();
 
-                // PROVERA: Ako je broj pozivnica porastao, pošalji notifikaciju
-                // (Ovde možeš dodati logiku da ne šalje svaki put kad uđeš u app,
-                // ali za demonstraciju je dovoljno ovako)
                 if (count > 0) {
-                    // Uzmi poslednju pozivnicu
                     AllianceInvite latest = value.toObjects(AllianceInvite.class).get(0);
                     sendSystemNotification("Novi poziv za Savez!", "Pozvao te je: " + latest.inviterName);
                 }
@@ -137,7 +121,6 @@ public class AllianceFragment extends Fragment {
         });
     }
 
-    // --- LOGIKA KAD IMAŠ SAVEZ ---
     private void loadAllianceDetails(String allianceId) {
         layoutNoAlliance.setVisibility(View.GONE);
         layoutHasAlliance.setVisibility(View.VISIBLE);
@@ -147,7 +130,6 @@ public class AllianceFragment extends Fragment {
 
             tvAllianceName.setText(alliance.name);
 
-            // Učitaj podatke o članovima (imena, slike...)
             fetchMembersData(alliance.members);
         });
     }
@@ -157,21 +139,17 @@ public class AllianceFragment extends Fragment {
 
         List<User> memberList = new ArrayList<>();
 
-        // Prolazimo kroz sve ID-jeve i dovlačimo User objekte
         for (String uid : memberIds) {
             repo.getUser(uid).addOnSuccessListener(documentSnapshot -> {
                 User u = documentSnapshot.toObject(User.class);
                 if (u != null) {
                     memberList.add(u);
-                    // Osvežavamo listu svaki put kad stigne podatak
-                    // (new ArrayList je bitan da bi adapter skontao promenu)
                     membersAdapter.setUsers(new ArrayList<>(memberList));
                 }
             });
         }
     }
 
-    // --- DIJALOZI I AKCIJE ---
     private void showCreateDialog() {
         final EditText input = new EditText(getContext());
         input.setHint("Naziv saveza");
@@ -199,13 +177,11 @@ public class AllianceFragment extends Fragment {
         String channelId = "alliance_invites";
         NotificationManager manager = (NotificationManager) requireContext().getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // 1. Kreiraj kanal (Obavezno za novije androide)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(channelId, "Pozivnice za savez", NotificationManager.IMPORTANCE_HIGH);
             manager.createNotificationChannel(channel);
         }
 
-        // 2. Kreiraj notifikaciju
         NotificationCompat.Builder builder = new NotificationCompat.Builder(requireContext(), channelId)
                 .setSmallIcon(R.drawable.ic_launcher_foreground) // ILI TVOJA SLIKA
                 .setContentTitle(title)
@@ -213,7 +189,6 @@ public class AllianceFragment extends Fragment {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true); // Nestane kad klikneš (iako spec traži da se ne sklanja, ovo je lakše za sad)
 
-        // 3. Prikaži je
         manager.notify(1, builder.build());
     }
 }

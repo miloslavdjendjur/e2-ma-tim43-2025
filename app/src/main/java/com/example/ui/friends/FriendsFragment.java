@@ -22,14 +22,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
-import com.example.ui.adapters.FriendsAdapter;
+import com.example.ui.friends.FriendsAdapter;
 
 import androidx.activity.result.ActivityResultLauncher;
 
 import java.util.List;
 
-// Napomena: Moraš napraviti i Adapter za listu prijatelja (FriendsAdapter)
-// Za sada ću staviti samo logiku.
 
 public class FriendsFragment extends Fragment {
 
@@ -114,9 +112,7 @@ public class FriendsFragment extends Fragment {
         });
     }
 
-    // Šta se desi kad klikneš na prijatelja
     private void onFriendClick(User friend) {
-        // 1. Prvo proveri da li JA imam savez
         repo.getCurrentUser().addOnSuccessListener(snap -> {
             User me = snap.toObject(User.class);
             if (me == null) return;
@@ -124,7 +120,6 @@ public class FriendsFragment extends Fragment {
             if (me.allianceId == null || me.allianceId.isEmpty()) {
                 Toast.makeText(getContext(), "Moraš prvo kreirati savez da bi pozivao ljude!", Toast.LENGTH_LONG).show();
             } else {
-                // Imam savez -> Pitaj za potvrdu
                 showInviteDialog(friend, me.allianceId);
             }
         });
@@ -135,13 +130,12 @@ public class FriendsFragment extends Fragment {
                 .setTitle("Pozovi u savez")
                 .setMessage("Da li želiš da pozoveš " + friend.username + " u svoj savez?")
                 .setPositiveButton("Pozovi", (d, w) -> {
-                    // Prvo dobavi tvoje podatke da bismo znali tvoj username
+
                     repo.getCurrentUser().addOnSuccessListener(snap -> {
                         User me = snap.toObject(User.class);
                         if (me != null) {
-                            // Sada dobavi podatke o savezu
                             repo.getAlliance(myAllianceId).addOnSuccessListener(alliance -> {
-                                // Prosleđujemo me.username umesto fiksnog teksta
+
                                 repo.inviteToAlliance(friend.uid, alliance, me.username)
                                         .addOnSuccessListener(v ->
                                                 Toast.makeText(getContext(), "Pozivnica poslata!", Toast.LENGTH_SHORT).show()
