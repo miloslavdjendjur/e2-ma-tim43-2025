@@ -40,9 +40,10 @@ public class BossPrepActivity extends AppCompatActivity {
     private TextView tvWeaponValue, tvShieldValue, tvGlovesValue, tvBootsValue;
 
     // We reuse tvNote for potion effects / tips
-    private TextView tvNote;
+    private TextView tvNote, tvRewards;
 
     private Button btnMyEquipment, btnStore, btnStartFight;
+    private final com.example.data.service.BossService bossService = new com.example.data.service.BossService();
 
     private int userLevel = 1;
     private int effectivePp = 0;
@@ -54,7 +55,6 @@ public class BossPrepActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_boss_prep);
 
-        // IDs from the new XML
         progress = findViewById(R.id.progress);
         tvLevel = findViewById(R.id.tvLevel);
 
@@ -70,6 +70,7 @@ public class BossPrepActivity extends AppCompatActivity {
         tvBootsValue = findViewById(R.id.tvBootsValue);
 
         tvNote = findViewById(R.id.tvNote);
+        tvRewards = findViewById(R.id.tvRewards);
 
         btnMyEquipment = findViewById(R.id.btnMyEquipment);
         btnStore = findViewById(R.id.btnStore);
@@ -82,6 +83,7 @@ public class BossPrepActivity extends AppCompatActivity {
         setEnabled(false);
         load();
     }
+
 
     @Override
     protected void onResume() {
@@ -106,10 +108,8 @@ public class BossPrepActivity extends AppCompatActivity {
                     Long lvl = userDoc.getLong("level");
                     userLevel = (lvl != null) ? lvl.intValue() : 1;
 
-                    // Header boss icon is static; XML already sets boss_idle0,
-                    // but keep this in case you change it later.
-                    if (ivBossIcon != null) {
-                        ivBossIcon.setImageResource(R.drawable.boss_idle0);
+                    if (ivBossIcon == null) {
+                        ivBossIcon.setImageResource(R.drawable.boss_profile);
                     }
 
                     tvLevel.setText("Boss level: " + userLevel);
@@ -121,6 +121,10 @@ public class BossPrepActivity extends AppCompatActivity {
                                 extraTryPct = stats.extraTryPct;
 
                                 tvEffectivePp.setText("Effective PP: " + effectivePp);
+
+                                if (tvRewards != null) {
+                                    tvRewards.setText(potentialRewardsText(userLevel));
+                                }
                                 tvHitBonus.setText(String.format(Locale.US, "Hit bonus: +%d%%", hitBonusPct));
                                 tvExtraTry.setText(String.format(Locale.US, "Extra try chance: %d%%", extraTryPct));
 
@@ -266,4 +270,37 @@ public class BossPrepActivity extends AppCompatActivity {
         i.putExtra("extraTryPct", extraTryPct);
         startActivity(i);
     }
+
+    private String potentialRewardsText(int bossLevel) {
+        int baseCoins = bossService.calculateBaseCoinReward(bossLevel);
+        int halfCoins = (int) Math.round(baseCoins * 0.5);
+
+        // Drop chance: 20% ako pobediš, 10% ako boss "escape" ali je HP <= 50%
+        // Ako boss escape i HP > 50% -> 0 reward
+        int dropWinPct = 20;
+        int dropHalfPct = 10;
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("If you defeat the boss:\n");
+        sb.append("• Coins: ").append(baseCoins).append("\n");
+        sb.append("• Drop chance: ").append(dropWinPct).append("%\n\n");
+
+        sb.append("If the boss escapes but HP ≤ 50%:\n");
+        sb.append("• Coins: ").append(halfCoins).append("\n");
+        sb.append("• Drop chance: ").append(dropHalfPct).append("%\n\n");
+
+        sb.append("If the boss escapes and HP > 50%:\n");
+        sb.append("• No rewards\n\n");
+
+        sb.append("Possible drops (when drop happens):\n");
+        sb.append("• Weapon (5% of drops): SWORD or BOW\n");
+        sb.append("• Clothes (95% of drops):\n");
+        sb.append("  - GLOVES: +10% PP\n");
+        sb.append("  - SHIELD: +10% max HP\n");
+        sb.append("  - BOOTS: +40% chance for 1 extra attack (next fight)");
+
+        return sb.toString();
+    }
+
 }

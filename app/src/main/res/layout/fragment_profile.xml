@@ -101,12 +101,13 @@
             android:layout_height="wrap_content"
             android:text="Badges: 0" />
 
-        <!-- NEW: Boss fight test button -->
+        <!-- Boss fight test button -->
         <Button
             android:id="@+id/btnBossFight"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
+            android:backgroundTint="#f96b80"
             android:text="Boss fight" />
 
         <Button

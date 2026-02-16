@@ -137,7 +137,7 @@ public class ProfileFragment extends Fragment {
                     if (!isAdded()) return;
 
                     if (bossDoc == null || !bossDoc.exists()) {
-                        btnBossFight.setVisibility(View.GONE);
+                        btnBossFight.setVisibility(View.VISIBLE);
                         return;
                     }
 

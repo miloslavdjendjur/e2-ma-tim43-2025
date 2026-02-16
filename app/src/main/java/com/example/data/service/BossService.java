@@ -57,7 +57,7 @@ public class BossService {
 
     // ------------------ BOSS RESPWAN / START BATTLE ------------------
 
-    public com.google.android.gms.tasks.Task<Boss> getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
+    public com.google.android.gms.tasks.Task<Boss>  getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
         TaskCompletionSource<Boss> tcs = new TaskCompletionSource<>();
 
         bossRepo.getCurrentBoss()

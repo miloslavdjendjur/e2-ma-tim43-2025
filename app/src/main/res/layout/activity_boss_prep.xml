@@ -94,26 +94,56 @@
                     android:textStyle="bold"
                     android:textSize="16sp" />
 
+                <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"> <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/power"
+                android:contentDescription="weapon" />
+
                 <TextView
                     android:id="@+id/tvEffectivePp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Effective PP: -" />
+                    android:layout_marginStart="8dp" android:text="Power: -" />
+                </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvHitBonus"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Hit bonus: -" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"> <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/hit"
+                    android:contentDescription="weapon" />
 
-                <TextView
-                    android:id="@+id/tvExtraTry"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/tvHitBonus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp" android:text="Hit Bonus: -" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Extra try chance: -" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"> <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/plus"
+                    android:contentDescription="weapon" />
+
+                    <TextView
+                        android:id="@+id/tvExtraTry"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp" android:text="Extra try chance -" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -310,6 +340,9 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+
+
+
         <!-- Actions (stacked menu items) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMyEquipment"
@@ -336,15 +369,63 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#f96b80"
             android:text="Start boss fight"
             app:iconGravity="textStart"
             app:iconPadding="10dp" />
 
+        <!-- Potential rewards -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/petronas_primary_container">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="14dp"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/chest0"
+                        android:contentDescription="potions" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Potential rewards"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvRewards"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="-"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- bottom spacing -->
         <Space
             android:layout_width="match_parent"
-            android:layout_height="8dp" />
+            android:layout_height="28dp" />
 
     </LinearLayout>
 </ScrollView>
