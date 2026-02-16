@@ -112,7 +112,9 @@ public class BossPrepActivity extends AppCompatActivity {
                         ivBossIcon.setImageResource(R.drawable.boss_profile);
                     }
 
-                    tvLevel.setText("Boss level: " + userLevel);
+                    int bossLevelToFight = Math.max(1, userLevel - 1);
+                    tvLevel.setText("Boss level: " + bossLevelToFight);
+
 
                     service.computeEffectiveStats(userDoc)
                             .addOnSuccessListener(stats -> {
