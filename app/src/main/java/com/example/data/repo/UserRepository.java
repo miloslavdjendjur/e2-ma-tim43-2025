@@ -2,8 +2,11 @@ package com.example.data.repo;
 
 import com.example.data.model.Alliance;
 import com.example.data.model.AllianceInvite;
+import com.example.data.model.ChatMessage;
 import com.example.data.model.User;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.*;
 
 import java.util.HashMap;
@@ -125,7 +128,6 @@ public class UserRepository {
     }
 
     public Task<Void> inviteToAlliance(String targetUid, Alliance alliance, String myName) {
-        // Koristimo alliance.id kao ID dokumenta pozivnice da bismo izbegli duplikate
         DocumentReference inviteRef = db.collection("users").document(targetUid)
                 .collection("alliance_invites").document(alliance.id);
 
@@ -133,41 +135,49 @@ public class UserRepository {
         return inviteRef.set(invite);
     }
 
+    // OVO JE METODA KOJA JE BILA NEPOTPUNA KOD TEBE
     public Task<Void> respondToInvite(String myUid, AllianceInvite invite, boolean accept) {
+        DocumentReference userRef = db.collection("users").document(myUid);
+        DocumentReference inviteRef = db.collection("users").document(myUid)
+                .collection("alliance_invites").document(invite.id);
+
+
         return db.runTransaction(transaction -> {
-            DocumentReference inviteRef = db.collection("users").document(myUid)
-                    .collection("alliance_invites").document(invite.id); // Koristi ID dokumenta!
-
-            DocumentReference userRef = db.collection("users").document(myUid);
-
-            // --- 1. ČITANJE (MORA BITI PRVO!) ---
-            // Čitamo korisnika pre nego što bilo šta obrišemo ili upišemo
             DocumentSnapshot userSnap = transaction.get(userRef);
+            String myUsername = userSnap.getString("username");
 
-            // --- 2. PISANJE (TEK KAD SU SVA ČITANJA GOTOVA) ---
-
-            // Sada možemo da obrišemo pozivnicu
             transaction.delete(inviteRef);
 
             if (accept) {
-                // Logika za prelazak u novi savez
                 String currentAllianceId = userSnap.getString("allianceId");
 
-                // Ako je već u nekom savezu, izbaci ga iz starog
                 if (currentAllianceId != null && !currentAllianceId.isEmpty()) {
                     DocumentReference oldAllianceRef = db.collection("alliances").document(currentAllianceId);
                     transaction.update(oldAllianceRef, "members", FieldValue.arrayRemove(myUid));
                 }
 
-                // Ubaci ga u novi savez
                 DocumentReference newAllianceRef = db.collection("alliances").document(invite.allianceId);
                 transaction.update(newAllianceRef, "members", FieldValue.arrayUnion(myUid));
-
-                // Ažuriraj korisnika
                 transaction.update(userRef, "allianceId", invite.allianceId);
             }
 
-            return null;
+            return myUsername;
+
+        }).continueWithTask(task -> {
+            String username = task.getResult();
+
+            if (accept && username != null) {
+                ChatMessage systemMsg = new ChatMessage();
+                systemMsg.senderUid = "SYSTEM"; 
+                systemMsg.senderName = "SYSTEM";
+                systemMsg.messageText = username + " je prihvatio poziv i ušao u savez!";
+                systemMsg.timestamp = Timestamp.now();
+
+                return db.collection("alliances").document(invite.allianceId)
+                        .collection("messages").add(systemMsg).continueWith(t -> null);
+            }
+
+            return Tasks.forResult(null);
         });
     }
 
