@@ -150,6 +150,40 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        app:cardBackgroundColor="@android:color/white"
+        app:cardCornerRadius="22dp"
+        app:cardElevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="How to reduce Boss HP"
+                android:textColor="@android:color/black"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:layout_marginBottom="10dp"/>
+
+            <TextView
+                android:id="@+id/tvMissionRules"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="• Shop purchase (max 5): - 2 HP\n\n• Regular boss hit (max 10): - 2 HP\n\n• Completing tasks (max 10): - 1 HP\n\n• Other tasks (max 6): - 4 HP\n\n• No missed tasks during mission: - 10 HP\n\n• Alliance message (daily): - 4 HP"
+                android:textColor="#555555"
+                android:textSize="14sp"
+                android:lineSpacingExtra="-4dp"/>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -184,6 +218,14 @@
                 android:textSize="14sp"
                 android:layout_marginTop="16dp"/>
         </LinearLayout>
+
+        <Button
+            android:id="@+id/btnDebugReward"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Give reward (Debug)"
+            android:visibility="visible"
+            />
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

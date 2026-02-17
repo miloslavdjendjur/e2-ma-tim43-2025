@@ -3,8 +3,10 @@ package com.example.ui.alliance;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.data.model.User;
 import com.example.data.repo.UserRepository;
+import com.example.data.service.SpecialMissionService;
 import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
@@ -30,6 +33,7 @@ public class SpecialMissionFragment extends Fragment {
     private static final String ARG_ALLIANCE_ID = "ALLIANCE_ID";
 
     private TextView tvCountdown, tvBossHp, tvStatus;
+    private Button btnDebugReward;
     private ProgressBar pbBossHp;
     private RecyclerView rvContrib;
 
@@ -64,6 +68,7 @@ public class SpecialMissionFragment extends Fragment {
         tvStatus = view.findViewById(R.id.tvStatus);
         pbBossHp = view.findViewById(R.id.pbBossHp);
         rvContrib = view.findViewById(R.id.rvContributions);
+        btnDebugReward = view.findViewById(R.id.btnDebugReward);
 
         adapter = new MemberContributionAdapter();
         rvContrib.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -76,6 +81,17 @@ public class SpecialMissionFragment extends Fragment {
 
         listenMission();
         loadProgressOnceThenListen();
+
+        btnDebugReward.setOnClickListener(v -> {
+            new SpecialMissionService()
+                    .debugTriggerRewards(allianceId)
+                    .addOnSuccessListener(x ->
+                            Toast.makeText(getContext(), "Rewards triggered.", Toast.LENGTH_SHORT).show()
+                    )
+                    .addOnFailureListener(e ->
+                            Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
+        });
     }
 
     private DocumentReference missionRef() {
@@ -250,4 +266,5 @@ public class SpecialMissionFragment extends Fragment {
         super.onDestroyView();
         cancelTimer();
     }
+
 }

@@ -3,11 +3,11 @@
 
     <!-- PETRONAS palette -->
     <color name="petronas_primary">#00A19C</color>
-    <color name="petronas_primary_container">#C2D3D2</color>
+    <color name="petronas_primary_container">#FFFFFF</color>
     <color name="petronas_secondary">#5CE1E6</color>
 
     <!-- Background / Surface -->
-    <color name="background_light">#F5FDFD</color>
+    <color name="background_light">#f2f2f2</color>
     <color name="surface_light">#FFFFFF</color>
 
     <color name="background_dark">#0E1F1F</color>
