@@ -34,13 +34,10 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
-
         Intent serviceIntent = new Intent(this, AllianceService.class);
         startService(serviceIntent);
 
         bottomNav = findViewById(R.id.bottom_nav);
-
 
         NavHostFragment navHost =
                 (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
