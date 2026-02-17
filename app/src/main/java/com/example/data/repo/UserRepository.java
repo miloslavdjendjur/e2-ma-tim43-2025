@@ -51,19 +51,6 @@ public class UserRepository {
             Map<String,Object> userDoc = new HashMap<>();
             userDoc.put("uid", u.uid);
             userDoc.put("email", u.email);
-<<<<<<< Updated upstream
-            userDoc.put("username", u.username);           // ne menja se
-            userDoc.put("avatarIndex", u.avatarIndex);     // 0..4
-            userDoc.put("active", false);                  // start: false
-            userDoc.put("level", u.level);                 // 1
-            userDoc.put("title", u.title);                 // "Rookie"
-            userDoc.put("xp", u.xp);                       // 0
-            userDoc.put("pp", u.pp);                       // 0
-            userDoc.put("coins", u.coins);                 // 0
-            userDoc.put("badges", u.badges);               // 0
-            userDoc.put("qrId", u.qrId);                   // npr. uid
-            userDoc.put("createdAt", FieldValue.serverTimestamp()); // za 24h prozor
-=======
             userDoc.put("username", u.username);
             userDoc.put("avatarIndex", u.avatarIndex);
             userDoc.put("active", false);
@@ -75,7 +62,6 @@ public class UserRepository {
             userDoc.put("badges", u.badges);
             userDoc.put("qrId", u.qrId);
             userDoc.put("createdAt", FieldValue.serverTimestamp());
->>>>>>> Stashed changes
             tr.set(userRef, userDoc);
 
             return null;
