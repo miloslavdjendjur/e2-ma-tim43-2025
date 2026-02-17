@@ -11,6 +11,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
+import com.example.data.service.AllianceService;
 import com.example.ui.auth.LoginActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -32,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_main);
+
+        Intent serviceIntent = new Intent(this, AllianceService.class);
+        startService(serviceIntent);
 
         bottomNav = findViewById(R.id.bottom_nav);
 

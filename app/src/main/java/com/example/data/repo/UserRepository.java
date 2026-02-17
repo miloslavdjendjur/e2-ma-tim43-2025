@@ -2,8 +2,11 @@ package com.example.data.repo;
 
 import com.example.data.model.Alliance;
 import com.example.data.model.AllianceInvite;
+import com.example.data.model.ChatMessage;
 import com.example.data.model.User;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.*;
 
 import java.util.HashMap;
@@ -11,6 +14,8 @@ import java.util.Map;
 
 public class UserRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+    // --- USER METODE ---
 
     public Task<DocumentSnapshot> getUser(String uid) {
         return db.collection("users").document(uid).get();
@@ -49,17 +54,17 @@ public class UserRepository {
             Map<String,Object> userDoc = new HashMap<>();
             userDoc.put("uid", u.uid);
             userDoc.put("email", u.email);
-            userDoc.put("username", u.username);           // ne menja se
-            userDoc.put("avatarIndex", u.avatarIndex);     // 0..4
-            userDoc.put("active", false);                  // start: false
-            userDoc.put("level", u.level);                 // 1
-            userDoc.put("title", u.title);                 // "Rookie"
-            userDoc.put("xp", u.xp);                       // 0
-            userDoc.put("pp", u.pp);                       // 0
-            userDoc.put("coins", u.coins);                 // 0
-            userDoc.put("badges", u.badges);               // 0
-            userDoc.put("qrId", u.qrId);                   // npr. uid
-            userDoc.put("createdAt", FieldValue.serverTimestamp()); // za 24h prozor
+            userDoc.put("username", u.username);
+            userDoc.put("avatarIndex", u.avatarIndex);
+            userDoc.put("active", false);
+            userDoc.put("level", u.level);
+            userDoc.put("title", u.title);
+            userDoc.put("xp", u.xp);
+            userDoc.put("pp", u.pp);
+            userDoc.put("coins", u.coins);
+            userDoc.put("badges", u.badges);
+            userDoc.put("qrId", u.qrId);
+            userDoc.put("createdAt", FieldValue.serverTimestamp());
             tr.set(userRef, userDoc);
 
             return null;
@@ -78,7 +83,8 @@ public class UserRepository {
                 : null;
     }
 
-    // FRIENDS
+    // --- FRIENDS METODE ---
+
     public Task<DocumentSnapshot> searchUserByUsername(String username) {
         return db.collection("usernames").document(username).get()
                 .continueWithTask(task -> {
@@ -91,7 +97,6 @@ public class UserRepository {
     }
 
     public Task<Void> addFriend(String myUid, User friend) {
-        // Dodajemo prijatelja u moju listu
         DocumentReference myFriendRef = db.collection("users").document(myUid)
                 .collection("friends").document(friend.uid);
 
@@ -107,7 +112,8 @@ public class UserRepository {
         return db.collection("users").document(myUid).collection("friends");
     }
 
-    // ALLIANCE
+    // --- ALLIANCE METODE ---
+
     public Task<Void> createAlliance(String name, User leader) {
         DocumentReference newAllianceRef = db.collection("alliances").document();
         String allianceId = newAllianceRef.getId();
@@ -129,23 +135,65 @@ public class UserRepository {
         return inviteRef.set(invite);
     }
 
+    // OVO JE METODA KOJA JE BILA NEPOTPUNA KOD TEBE
     public Task<Void> respondToInvite(String myUid, AllianceInvite invite, boolean accept) {
-        WriteBatch batch = db.batch();
+        DocumentReference userRef = db.collection("users").document(myUid);
         DocumentReference inviteRef = db.collection("users").document(myUid)
-                .collection("alliance_invites").document(invite.allianceId);
+                .collection("alliance_invites").document(invite.id);
 
-        batch.delete(inviteRef);
 
-        if (accept) {
-            DocumentReference allianceRef = db.collection("alliances").document(invite.allianceId);
-            DocumentReference userRef = db.collection("users").document(myUid);
+        return db.runTransaction(transaction -> {
+            DocumentSnapshot userSnap = transaction.get(userRef);
+            String myUsername = userSnap.getString("username");
 
-            batch.update(allianceRef, "members", FieldValue.arrayUnion(myUid));
+            transaction.delete(inviteRef);
 
-            batch.update(userRef, "allianceId", invite.allianceId);
-        }
+            if (accept) {
+                String currentAllianceId = userSnap.getString("allianceId");
 
-        return batch.commit();
+                if (currentAllianceId != null && !currentAllianceId.isEmpty()) {
+                    DocumentReference oldAllianceRef = db.collection("alliances").document(currentAllianceId);
+                    transaction.update(oldAllianceRef, "members", FieldValue.arrayRemove(myUid));
+                }
+
+                DocumentReference newAllianceRef = db.collection("alliances").document(invite.allianceId);
+                transaction.update(newAllianceRef, "members", FieldValue.arrayUnion(myUid));
+                transaction.update(userRef, "allianceId", invite.allianceId);
+            }
+
+            return myUsername;
+
+        }).continueWithTask(task -> {
+            String username = task.getResult();
+
+            if (accept && username != null) {
+                ChatMessage systemMsg = new ChatMessage();
+                systemMsg.senderUid = "SYSTEM"; 
+                systemMsg.senderName = "SYSTEM";
+                systemMsg.messageText = username + " je prihvatio poziv i ušao u savez!";
+                systemMsg.timestamp = Timestamp.now();
+
+                return db.collection("alliances").document(invite.allianceId)
+                        .collection("messages").add(systemMsg).continueWith(t -> null);
+            }
+
+            return Tasks.forResult(null);
+        });
+    }
+
+    public Task<Void> disbandAlliance(String allianceId) {
+        return db.collection("users").whereEqualTo("allianceId", allianceId).get()
+                .continueWithTask(task -> {
+                    WriteBatch batch = db.batch();
+
+                    batch.delete(db.collection("alliances").document(allianceId));
+
+                    for (DocumentSnapshot doc : task.getResult()) {
+                        batch.update(doc.getReference(), "allianceId", null);
+                    }
+
+                    return batch.commit();
+                });
     }
 
     public Task<Alliance> getAlliance(String allianceId) {
@@ -156,5 +204,4 @@ public class UserRepository {
     public Query getInvitesQuery(String myUid) {
         return db.collection("users").document(myUid).collection("alliance_invites");
     }
-
 }
