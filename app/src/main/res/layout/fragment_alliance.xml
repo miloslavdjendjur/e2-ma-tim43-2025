@@ -63,23 +63,30 @@
             android:id="@+id/btnOpenChat"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="OTVORI CHAT SAVEZA"
+            android:text="Open chat"
             android:backgroundTint="#2196F3"
             android:layout_marginTop="16dp" />
 
         <Button
             android:id="@+id/btnStartMission"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="ZAPOČNI MISIJU (Student 2)"
-            android:backgroundTint="#FF0000"
+            android:text="Start Special mission"
             android:visibility="gone"
-            android:layout_gravity="center_horizontal"/>
+            android:layout_marginTop="10dp"/>
+
+        <Button
+            android:id="@+id/btnViewMission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="View Special mission"
+            android:visibility="gone"
+            android:layout_marginTop="10dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Članovi saveza:"
+            android:text="Alliance members:"
             android:layout_marginTop="24dp"
             android:textStyle="bold"/>
 

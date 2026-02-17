@@ -43,6 +43,16 @@
         tools:layout="@layout/fragment_alliance" />
 
     <fragment
+        android:id="@+id/specialMissionFragment"
+        android:name="com.example.ui.alliance.SpecialMissionFragment"
+        android:label="Special Mission">
+        <argument
+            android:name="ALLIANCE_ID"
+            app:argType="string" />
+    </fragment>
+
+
+    <fragment
         android:id="@+id/allTasksFragment"
         android:name="com.example.ui.task.AllTasksFragment"
         android:label="All Tasks" />

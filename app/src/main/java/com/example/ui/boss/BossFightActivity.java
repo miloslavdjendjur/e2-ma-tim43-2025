@@ -26,6 +26,7 @@ import com.example.data.model.boss.FightResult;
 import com.example.data.repo.EquipmentRepository;
 import com.example.data.service.BossService;
 import com.example.data.service.EquipmentService;
+import com.example.data.service.SpecialMissionService;
 import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
 
@@ -35,6 +36,7 @@ import java.util.Random;
 public class BossFightActivity extends AppCompatActivity implements SensorEventListener {
 
     private final BossService bossService = new BossService();
+    private final SpecialMissionService specialMissionService = new SpecialMissionService();
     private final EquipmentRepository equipmentRepo = new EquipmentRepository();
     private final EquipmentService equipmentService = new EquipmentService();
     private final Random random = new Random();
@@ -304,6 +306,8 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                     tvCombatLog.setText(hit ? "Hit!" : "Miss!");
 
                     if (hit) {
+                        // Special mission hook (7.3): successful hit in regular boss fight
+                        specialMissionService.onRegularBossHitSuccess();
                         // Overlay hurt (stops/hides idle underneath), then return to idle/death
                         playOverlayAnim(R.drawable.boss_hurt_anim, () -> {
                             if (boss.isDefeated()) {

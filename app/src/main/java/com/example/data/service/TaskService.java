@@ -36,6 +36,9 @@ public class TaskService {
     private final CollectionReference usersRef = db.collection("users");
     private final CollectionReference xpEventsRef = db.collection("xp_events");
 
+    // NEW: 7.3 hook service
+    private final SpecialMissionService specialMissionService = new SpecialMissionService();
+
     // ---- Quota keys (based on spec) ----
     private static final String QUOTA_VE_NORMAL = "VE_NORMAL";                   // Very easy (1) + Normal (1)
     private static final String QUOTA_EASY_IMPORTANT = "EASY_IMPORTANT";         // Easy (3) + Important (3)
@@ -192,6 +195,7 @@ public class TaskService {
      * CORE LOGIC:
      * 1. Checks quotas.
      * 2. Runs a Transaction to update User (add XP, Level Up) and save XP Event.
+     * 3. NEW: calls specialMissionService.onTaskCompleted AFTER successful status update.
      */
     private void applyCompletionXpIfNeeded(
             @NonNull String uid,
@@ -223,13 +227,11 @@ public class TaskService {
                     user.uid = uid;
                 }
 
-                // LevelingService.addXp menja user objekat i vraća true ako je nivo skočio
                 boolean leveledUp = LevelingService.addXp(user, xpPotential);
 
-                transaction.set(userDoc, user); // Čuva XP, Level, PP, Title i lastLevelUpDate
-                transaction.update(tasksRef.document(taskId), taskUpdates); // Update statusa taska
+                transaction.set(userDoc, user);
+                transaction.update(tasksRef.document(taskId), taskUpdates);
 
-                // Logovanje XP događaja
                 DocumentReference newEventRef = xpEventsRef.document();
                 Map<String, Object> evt = new HashMap<>();
                 evt.put("userId", uid);
@@ -246,6 +248,9 @@ public class TaskService {
 
                 return leveledUp;
             }).addOnSuccessListener(leveledUp -> {
+                // 7.3 hook (only after success)
+                specialMissionService.onTaskCompleted(uid, task);
+
                 if (leveledUp) {
                     listener.onSuccess("LEVEL_UP");
                 } else {
@@ -270,7 +275,11 @@ public class TaskService {
             batch.set(xpEventsRef.document(), evt);
 
             batch.commit()
-                    .addOnSuccessListener(aVoid -> listener.onSuccess("Status updated: done (Quota limit reached, +0 XP)"))
+                    .addOnSuccessListener(aVoid -> {
+                        //  7.3 hook (quota reached still counts for mission)
+                        specialMissionService.onTaskCompleted(uid, task);
+                        listener.onSuccess("Status updated: done (Quota limit reached, +0 XP)");
+                    })
                     .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
         };
 
@@ -322,7 +331,7 @@ public class TaskService {
                     String prev = (t.getStatus() != null && !t.getStatus().isEmpty()) ? t.getStatus() : Task.STATUS_ACTIVE;
                     boolean isCompletion = Task.STATUS_DONE.equals(newStatus) && !Task.STATUS_DONE.equals(prev);
 
-                    // XP processing (only once per task)
+                    // XP processing (only once per task) + special mission hook (inside applyCompletion)
                     if (isCompletion && !t.isXpProcessed()) {
                         Map<String, Object> updates = new HashMap<>();
                         updates.put("status", newStatus);
@@ -372,7 +381,7 @@ public class TaskService {
                     if (prev == null || prev.isEmpty()) prev = Task.STATUS_ACTIVE;
                     boolean isCompletion = Task.STATUS_DONE.equals(newStatus) && !Task.STATUS_DONE.equals(prev);
 
-                    // XP processing (only once per occurrence)
+                    // XP processing (only once per occurrence) + special mission hook (inside applyCompletion)
                     if (isCompletion && !t.isOccurrenceXpProcessed(dateKey)) {
                         Map<String, Object> updates = new HashMap<>();
                         updates.put("occurrenceStatuses." + dateKey, newStatus);
@@ -381,7 +390,6 @@ public class TaskService {
                         return;
                     }
 
-                    // normal update
                     Map<String, Object> update = new HashMap<>();
                     update.put("occurrenceStatuses." + dateKey, newStatus);
 

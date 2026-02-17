@@ -17,17 +17,20 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.navigation.Navigation;
 
 import com.example.data.model.AllianceInvite;
 import com.example.data.model.User;
 import com.example.data.repo.UserRepository;
+import com.example.data.service.SpecialMissionService;
 import com.example.myapplication.R;
-import com.example.ui.alliance.InvitesAdapter;
 import com.example.ui.friends.FriendsAdapter;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +38,9 @@ import java.util.List;
 public class AllianceFragment extends Fragment {
 
     private final UserRepository repo = new UserRepository();
+    private final SpecialMissionService specialMissionService = new SpecialMissionService();
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+
     private String myUid;
     private User currentUser;
 
@@ -43,15 +49,23 @@ public class AllianceFragment extends Fragment {
     private RecyclerView rvInvites, rvMembers;
     private Button btnCreateAlliance;
     private Button btnOpenChat;
+    private Button btnStartMission;
+    private Button btnViewMission;
 
     private InvitesAdapter invitesAdapter;
     private FriendsAdapter membersAdapter;
+
+    private boolean isLeader = false;
+    private boolean missionActive = false;
+
+    private ListenerRegistration missionListener;
 
     public AllianceFragment() { super(R.layout.fragment_alliance); }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         myUid = FirebaseAuth.getInstance().getUid();
 
         layoutNoAlliance = view.findViewById(R.id.layoutNoAlliance);
@@ -61,8 +75,14 @@ public class AllianceFragment extends Fragment {
         rvMembers = view.findViewById(R.id.rvMembers);
         btnCreateAlliance = view.findViewById(R.id.btnCreateAlliance);
         btnOpenChat = view.findViewById(R.id.btnOpenChat);
+        btnStartMission = view.findViewById(R.id.btnStartMission);
+        btnViewMission = view.findViewById(R.id.btnViewMission);
 
         setupAdapters();
+
+        // default (dok se ne učita state)
+        if (btnStartMission != null) btnStartMission.setVisibility(View.GONE);
+        if (btnViewMission != null) btnViewMission.setVisibility(View.GONE);
 
         btnCreateAlliance.setOnClickListener(v -> showCreateDialog());
 
@@ -72,6 +92,34 @@ public class AllianceFragment extends Fragment {
                 bundle.putString("ALLIANCE_ID", currentUser.allianceId);
                 Navigation.findNavController(v).navigate(R.id.allianceChatFragment, bundle);
             }
+        });
+
+        btnStartMission.setOnClickListener(v -> {
+            if (currentUser == null || currentUser.allianceId == null) return;
+
+            String allianceId = currentUser.allianceId;
+
+            specialMissionService.startMissionLeaderOnly(allianceId)
+                    .addOnSuccessListener(x -> {
+                        // listener će sam da prebaci dugmad na "view"
+                        Toast.makeText(getContext(), "Specijalna misija je pokrenuta.", Toast.LENGTH_SHORT).show();
+
+                        // ako želiš odmah da otvoriš ekran:
+                        Bundle b = new Bundle();
+                        b.putString("ALLIANCE_ID", allianceId);
+                        Navigation.findNavController(v).navigate(R.id.specialMissionFragment, b);
+                    })
+                    .addOnFailureListener(e ->
+                            Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
+        });
+
+        btnViewMission.setOnClickListener(v -> {
+            if (currentUser == null || currentUser.allianceId == null) return;
+
+            Bundle b = new Bundle();
+            b.putString("ALLIANCE_ID", currentUser.allianceId);
+            Navigation.findNavController(v).navigate(R.id.specialMissionFragment, b);
         });
 
         checkUserStatus();
@@ -97,6 +145,7 @@ public class AllianceFragment extends Fragment {
             if (currentUser == null) return;
 
             if (currentUser.allianceId == null || currentUser.allianceId.isEmpty()) {
+                detachMissionListener();
                 showNoAllianceUI();
             } else {
                 loadAllianceDetails(currentUser.allianceId);
@@ -110,15 +159,14 @@ public class AllianceFragment extends Fragment {
         layoutNoAlliance.setVisibility(View.VISIBLE);
         layoutHasAlliance.setVisibility(View.GONE);
 
+        if (btnStartMission != null) btnStartMission.setVisibility(View.GONE);
+        if (btnViewMission != null) btnViewMission.setVisibility(View.GONE);
+
         repo.getInvitesQuery(myUid).addSnapshotListener((value, error) -> {
             if (error != null) return;
 
             if (value != null) {
                 List<AllianceInvite> list = value.toObjects(AllianceInvite.class);
-                if (!list.isEmpty()) {
-                    AllianceInvite latest = list.get(0);
-                    // sendSystemNotification("Novi poziv", "Od: " + latest.inviterName);
-                }
                 invitesAdapter.setInvites(list);
             }
         });
@@ -128,11 +176,77 @@ public class AllianceFragment extends Fragment {
         layoutNoAlliance.setVisibility(View.GONE);
         layoutHasAlliance.setVisibility(View.VISIBLE);
 
+        // dok se učita alliance + mission stanje
+        isLeader = false;
+        missionActive = false;
+        applyMissionButtons();
+
         repo.getAlliance(allianceId).addOnSuccessListener(alliance -> {
             if (alliance == null) return;
+
             tvAllianceName.setText(alliance.name);
             fetchMembersData(alliance.members);
+
+            // leader-only
+            isLeader = alliance.leaderUid != null && alliance.leaderUid.equals(myUid);
+            applyMissionButtons();
+
+            // live listener za special mission state
+            attachMissionListener(allianceId);
+
+        }).addOnFailureListener(e ->
+                Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show()
+        );
+    }
+
+    private void attachMissionListener(@NonNull String allianceId) {
+        detachMissionListener();
+
+        DocumentReference missionRef = db.collection("alliances")
+                .document(allianceId)
+                .collection("special_mission")
+                .document("current");
+
+        missionListener = missionRef.addSnapshotListener((snap, err) -> {
+            if (err != null) {
+                Toast.makeText(getContext(), "PERMISSION_DENIED: " + err.getMessage(), Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            boolean activeNow = false;
+            if (snap != null && snap.exists()) {
+                Boolean active = snap.getBoolean("active");
+                Boolean defeated = snap.getBoolean("defeated");
+                activeNow = (active != null && active) && !(defeated != null && defeated);
+            }
+
+            missionActive = activeNow;
+            applyMissionButtons();
         });
+    }
+
+    private void detachMissionListener() {
+        if (missionListener != null) {
+            missionListener.remove();
+            missionListener = null;
+        }
+    }
+
+    /**
+     * RULES:
+     * - Ako misija JE aktivna: prikazi btnViewMission svima, sakrij btnStartMission
+     * - Ako misija NIJE aktivna: sakrij btnViewMission, btnStartMission vidi samo leader
+     */
+    private void applyMissionButtons() {
+        if (btnStartMission == null || btnViewMission == null) return;
+
+        if (missionActive) {
+            btnViewMission.setVisibility(View.VISIBLE);
+            btnStartMission.setVisibility(View.GONE);
+        } else {
+            btnViewMission.setVisibility(View.GONE);
+            btnStartMission.setVisibility(isLeader ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void fetchMembersData(List<String> memberIds) {
@@ -154,6 +268,7 @@ public class AllianceFragment extends Fragment {
     private void showCreateDialog() {
         final EditText input = new EditText(getContext());
         input.setHint("Naziv saveza");
+
         new AlertDialog.Builder(requireContext())
                 .setTitle("Osnuj savez")
                 .setView(input)
@@ -194,5 +309,11 @@ public class AllianceFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        detachMissionListener();
     }
 }

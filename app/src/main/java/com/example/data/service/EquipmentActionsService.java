@@ -13,6 +13,9 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 public class EquipmentActionsService {
     private final EquipmentRepository repo = new EquipmentRepository();
 
+    // NEW: 7.3 hook service
+    private final SpecialMissionService specialMissionService = new SpecialMissionService();
+
     // --- POTIONS ---
 
     public Task<Void> buyPotion(PotionType type, int userLevel) {
@@ -30,9 +33,10 @@ public class EquipmentActionsService {
             var batch = ds.getReference().getFirestore().batch();
             batch.update(ds.getReference(), "coins", coins - price);
 
-            return batch.commit().onSuccessTask(v -> {
-                return repo.addPotion(type, 1);
-            });
+            return batch.commit().onSuccessTask(v -> repo.addPotion(type, 1));
+        }).addOnSuccessListener(v -> {
+            // NEW: 7.3 (successful purchase counts)
+            specialMissionService.onAnyShopPurchase();
         });
     }
 
@@ -80,9 +84,10 @@ public class EquipmentActionsService {
             var batch = ds.getReference().getFirestore().batch();
             batch.update(ds.getReference(), "coins", coins - price);
 
-            return batch.commit().onSuccessTask(v -> {
-                return repo.addClothesStock(type);
-            });
+            return batch.commit().onSuccessTask(v -> repo.addClothesStock(type));
+        }).addOnSuccessListener(v -> {
+            // NEW: 7.3 (successful purchase counts)
+            specialMissionService.onAnyShopPurchase();
         });
     }
 

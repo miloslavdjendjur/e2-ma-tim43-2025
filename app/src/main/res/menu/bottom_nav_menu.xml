@@ -10,7 +10,7 @@
 <!--        android:icon="@android:drawable/ic_menu_view"/>-->
    <item
         android:id="@+id/nav_equipment"
-        android:title="Equipment"
+        android:title="Inventory"
         android:icon="@android:drawable/ic_menu_manage"/>
 
     <item

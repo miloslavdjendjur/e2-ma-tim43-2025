@@ -317,37 +317,6 @@ public class BossService {
     // ------------------ FIGHT ------------------
 
     /**
-     * Recommended: BossService generates random (0..100) and returns detailed AttackResult for UI.
-     */
-    public com.google.android.gms.tasks.Task<AttackResult> performAttack(Boss boss, int damage, double successRate) {
-        TaskCompletionSource<AttackResult> tcs = new TaskCompletionSource<>();
-
-        int roll = random.nextInt(101); // 0..100 (spec)
-        boolean hit = roll < successRate;
-
-        if (hit) {
-            long newHp = Math.max(0, boss.getCurrentHp() - (long) damage);
-            boss.setCurrentHp(newHp);
-            if (newHp == 0) {
-                boss.setStatus("DEFEATED");
-            }
-        }
-
-        boss.setAttacksLeft(Math.max(0, boss.getAttacksLeft() - 1));
-        if (!boss.isDefeated() && boss.getAttacksLeft() <= 0) {
-            boss.setStatus("ESCAPED");
-        }
-
-        bossRepo.saveBoss(boss)
-                .addOnSuccessListener(v -> tcs.setResult(
-                        new AttackResult(hit, hit ? damage : 0, boss.getCurrentHp(), boss.getAttacksLeft(), roll)
-                ))
-                .addOnFailureListener(tcs::setException);
-
-        return tcs.getTask();
-    }
-
-    /**
      * Backward-compatible: if UI already supplies randomValue.
      */
     @Deprecated

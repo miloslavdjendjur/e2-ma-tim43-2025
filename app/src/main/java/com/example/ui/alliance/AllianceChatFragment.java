@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.data.model.ChatMessage;
 import com.example.data.model.User;
 import com.example.data.repo.UserRepository;
+import com.example.data.service.SpecialMissionService;
 import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -62,6 +63,7 @@ public class AllianceChatFragment extends Fragment {
 
         // Učitaj ko sam ja (treba mi ime za slanje)
         repo.getCurrentUser().addOnSuccessListener(snap -> {
+            new SpecialMissionService().onAllianceMessageSent(allianceId, currentUser.uid);
             currentUser = snap.toObject(User.class);
             listenForMessages(); // Tek kad znam ko sam, palim chat
         });

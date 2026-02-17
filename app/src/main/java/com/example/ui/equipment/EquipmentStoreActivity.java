@@ -13,12 +13,14 @@ import com.example.data.repo.EquipmentRepository;
 import com.example.data.service.EquipmentActionsService;
 import com.example.data.service.EquipmentActionsService;
 import com.example.data.model.equipment.*;
+import com.example.data.service.SpecialMissionService;
 import com.example.myapplication.R;
 
 public class EquipmentStoreActivity extends AppCompatActivity {
 
     private final EquipmentActionsService actions = new EquipmentActionsService();
     private final EquipmentRepository repo = new EquipmentRepository();
+    private final SpecialMissionService specialMissionService = new SpecialMissionService();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
