@@ -49,8 +49,8 @@ public class AllianceFragment extends Fragment {
     private Button btnViewMission;
 
     // Dugmići za akcije
-    private Button btnOpenChat;
-    private Button btnStartMission;
+//    private Button btnOpenChat;
+//    private Button btnStartMission;
 
     private Button btnDisband;
 
