@@ -1,12 +1,13 @@
 package com.example.data.model;
 
+import com.example.myapplication.R;
 import com.google.firebase.Timestamp;
 
 public class User {
     public String uid;
     public String email;
     public String username;      // ne menja se
-    public int avatarIndex;      // 0..4
+    public int avatarIndex;      // 0..9
     public boolean active;       // mora biti true posle aktivacije
     public int level;            // 1 start
     public String title;         // početna titula (npr. "Novajlija")
@@ -27,7 +28,10 @@ public class User {
         this.active = false; this.level = 1; this.title = "Rookie";
         this.xp = 0; this.pp = 0; this.coins = 0; this.badges = 0; this.qrId = uid;
         this.createdAt = Timestamp.now();
-        this.lastLevelUpDate = Timestamp.now(); // Inicijalno je isto kad i kreiranje
+        this.lastLevelUpDate = Timestamp.now();
         this.allianceId = null;
     }
+
+
+
 }

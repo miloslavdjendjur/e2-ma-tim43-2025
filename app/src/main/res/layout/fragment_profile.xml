@@ -22,7 +22,9 @@
             android:id="@+id/ivAvatar"
             android:layout_width="96dp"
             android:layout_height="96dp"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:scaleType="centerCrop"/>
+
 
         <TextView
             android:id="@+id/tvUsername"

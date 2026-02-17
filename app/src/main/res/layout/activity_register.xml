@@ -70,6 +70,15 @@
                     android:imeOptions="actionDone"/>
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Avatar preview video -->
+            <VideoView
+                android:id="@+id/vvAvatarPreview"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_marginTop="10dp"
+                android:layout_gravity="center_horizontal"
+                android:keepScreenOn="true"/>
+
             <Spinner
                 android:id="@+id/spAvatar"
                 android:layout_width="match_parent"
@@ -77,7 +86,6 @@
                 android:layout_marginTop="8dp"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"/>
-
 
             <Button
                 android:id="@+id/btnRegister"

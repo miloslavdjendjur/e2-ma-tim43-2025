@@ -37,9 +37,14 @@ public class RegisterActivity extends AppCompatActivity {
         spAvatar = findViewById(R.id.spAvatar);
         btnRegister = findViewById(R.id.btnRegister);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
                 android.R.layout.simple_spinner_item,
-                new String[]{"Avatar 0","Avatar 1","Avatar 2","Avatar 3","Avatar 4"});
+                new String[]{
+                        "Avatar 1","Avatar 2","Avatar 3","Avatar 4","Avatar 5",
+                        "Avatar 6","Avatar 7","Avatar 8","Avatar 9","Avatar 10"
+                }
+        );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spAvatar.setAdapter(adapter);
 
@@ -52,34 +57,44 @@ public class RegisterActivity extends AppCompatActivity {
         String pass = etPass.getText().toString();
         String pass2 = etPass2.getText().toString();
 
-        if (email.isEmpty() || username.isEmpty() || pass.isEmpty() || pass2.isEmpty()) { toast("Fill out all of the fields bitch"); return; }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { toast("Email not valid"); return; }
-        if (!pass.equals(pass2)) { toast("Invalid password"); return; }
+        // Basic validation
+        if (email.isEmpty() || username.isEmpty() || pass.isEmpty() || pass2.isEmpty()) {
+            toast("Fill out all fields.");
+            return;
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            toast("Email not valid");
+            return;
+        }
+        if (!pass.equals(pass2)) {
+            toast("Passwords do not match");
+            return;
+        }
 
         authRepo.register(email, pass).addOnSuccessListener(authResult -> {
             FirebaseUser fbUser = authResult.getUser();
-            if (fbUser == null) { toast("Error whiel registering"); return; }
+            if (fbUser == null) {
+                toast("Error while registering");
+                return;
+            }
 
             String uid = fbUser.getUid();
-            int avatarIndex = spAvatar.getSelectedItemPosition();
+            int avatarIndex = spAvatar.getSelectedItemPosition(); // 0..9
+
             User u = new User(uid, email, username, avatarIndex);
 
             userRepo.reserveUsernameAndCreateUser(u).addOnSuccessListener(v -> {
-
                 fbUser.sendEmailVerification()
                         .addOnSuccessListener(x -> {
                             toast("Verification email sent.");
-
                             startActivity(new Intent(this, VerifyMailActivity.class).putExtra("email", email));
                             finish();
                         })
-                        .addOnFailureListener(e -> toast("Error while sending verification email: " + e.getMessage()));
-
+                        .addOnFailureListener(e -> toast("Error sending verification email: " + e.getMessage()));
             }).addOnFailureListener(e -> {
-
                 toast(e.getMessage() != null && e.getMessage().contains("Username already") ?
                         "Username already taken." :
-                        "Error while saving profile: " + e.getMessage());
+                        "Error saving profile: " + e.getMessage());
 
                 FirebaseUser cur = authRepo.current();
                 if (cur != null) cur.delete();
@@ -88,5 +103,7 @@ public class RegisterActivity extends AppCompatActivity {
         }).addOnFailureListener(e -> toast("Registration unsuccessful: " + e.getMessage()));
     }
 
-    private void toast(@NonNull String s) { Toast.makeText(this, s, Toast.LENGTH_SHORT).show(); }
+    private void toast(@NonNull String s) {
+        Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
+    }
 }

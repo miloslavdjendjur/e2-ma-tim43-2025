@@ -13,11 +13,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.data.model.AvatarUtils;
 import com.example.data.model.User;
 import com.example.data.model.boss.Boss;
 import com.example.data.repo.BossRepository;
 import com.example.data.repo.UserRepository;
-import com.example.data.service.BossService;
 import com.example.data.service.LevelingService;
 import com.example.myapplication.R;
 import com.example.ui.auth.LoginActivity;
@@ -64,15 +64,11 @@ public class ProfileFragment extends Fragment {
         btnBossFight.setVisibility(View.GONE);
 
         btnLogout.setOnClickListener(v -> doLogout());
-        btnBossFight.setOnClickListener(v -> {
-            Intent i = new Intent(requireContext(), BossPrepActivity.class);
-            startActivity(i);
-        });
+        btnBossFight.setOnClickListener(v -> startActivity(new Intent(requireContext(), BossPrepActivity.class)));
 
         load();
     }
 
-    // Kada se vratiš iz borbe, onResume će ponovo pozvati load()
     @Override
     public void onResume() {
         super.onResume();
@@ -91,14 +87,12 @@ public class ProfileFragment extends Fragment {
         User u = snap.toObject(User.class);
         if (u == null) return;
 
-        // Avatar
-        int resId = getResources().getIdentifier(
-                "avatar_" + u.avatarIndex, "drawable", requireContext().getPackageName());
-        if (resId != 0) ivAvatar.setImageResource(resId);
+        // Avatar (PNG drawable)
+        ivAvatar.setImageResource(AvatarUtils.imageResForAvatarIndex(u.avatarIndex));
 
         tvUsername.setText(u.username != null ? u.username : "");
 
-        // QR Kod
+        // QR code
         try {
             String qr = (u.qrId != null && !u.qrId.isEmpty()) ? u.qrId : u.uid;
             BarcodeEncoder encoder = new BarcodeEncoder();
@@ -121,12 +115,10 @@ public class ProfileFragment extends Fragment {
         tvCoins.setText("Coins: " + u.coins);
         tvBadges.setText("Badges: " + u.badges);
 
-        // Pozivamo pročišćenu metodu za proveru bosa
         setupBossButton(u);
     }
 
     private void setupBossButton(User user) {
-        // Boss fight tek od level 2
         if (user.level < 2) {
             btnBossFight.setVisibility(View.GONE);
             return;
@@ -136,7 +128,6 @@ public class ProfileFragment extends Fragment {
                 .addOnSuccessListener(bossDoc -> {
                     if (!isAdded()) return;
 
-                    // Ako nema boss dokumenta -> dozvoli ulazak (spawn-ovaće se novi)
                     if (bossDoc == null || !bossDoc.exists()) {
                         btnBossFight.setVisibility(View.VISIBLE);
                         return;
@@ -151,27 +142,20 @@ public class ProfileFragment extends Fragment {
                     String status = currentBoss.getStatus();
                     if (status == null) status = "";
 
-                    // Završena stanja borbe
                     boolean finished =
                             currentBoss.isDefeated()
                                     || "DEFEATED".equalsIgnoreCase(status)
                                     || "ESCAPED".equalsIgnoreCase(status);
 
-                    // Boss mora da bude za trenutni user level
                     boolean sameLevel = currentBoss.getLevel() == user.level;
-
                     boolean canFight = sameLevel && !finished;
 
                     btnBossFight.setVisibility(canFight ? View.VISIBLE : View.GONE);
                 })
                 .addOnFailureListener(e -> {
-                    if (isAdded()) {
-                        btnBossFight.setVisibility(View.GONE);
-                    }
+                    if (isAdded()) btnBossFight.setVisibility(View.GONE);
                 });
-
     }
-
 
     private void doLogout() {
         FirebaseAuth.getInstance().signOut();
