@@ -1,0 +1,11 @@
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="true">
+    <item android:drawable="@drawable/chest0" android:duration="200"/>
+    <item android:drawable="@drawable/chest1" android:duration="200"/>
+    <item android:drawable="@drawable/chest2" android:duration="200"/>
+    <item android:drawable="@drawable/chest3" android:duration="200"/>
+    <item android:drawable="@drawable/chest4" android:duration="200"/>
+    <item android:drawable="@drawable/chest5" android:duration="200"/>
+    <item android:drawable="@drawable/chest6" android:duration="200"/>
+    <item android:drawable="@drawable/chest7" android:duration="200"/>
+</animation-list>

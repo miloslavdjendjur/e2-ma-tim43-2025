@@ -14,10 +14,14 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.data.model.User;
+import com.example.data.model.boss.Boss;
+import com.example.data.repo.BossRepository;
 import com.example.data.repo.UserRepository;
+import com.example.data.service.BossService;
 import com.example.data.service.LevelingService;
 import com.example.myapplication.R;
 import com.example.ui.auth.LoginActivity;
+import com.example.ui.boss.BossPrepActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.zxing.BarcodeFormat;
@@ -27,13 +31,12 @@ public class ProfileFragment extends Fragment {
 
     private ImageView ivAvatar, ivQr;
     private TextView tvUsername;
-
     private TextView tvLevel, tvTitle, tvXp, tvPp, tvNext, tvCoins, tvBadges;
     private ProgressBar progress, progressXp;
-
-    private Button btnChangePass, btnLogout;
+    private Button btnChangePass, btnLogout, btnBossFight;
 
     private final UserRepository userRepo = new UserRepository();
+    private final BossRepository bossRepo = new BossRepository();
 
     public ProfileFragment() {
         super(R.layout.fragment_profile);
@@ -46,7 +49,6 @@ public class ProfileFragment extends Fragment {
         ivAvatar = view.findViewById(R.id.ivAvatar);
         ivQr = view.findViewById(R.id.ivQr);
         tvUsername = view.findViewById(R.id.tvUsername);
-
         tvLevel = view.findViewById(R.id.tvLevelProg);
         tvTitle = view.findViewById(R.id.tvTitleProg);
         tvXp = view.findViewById(R.id.tvXp);
@@ -54,53 +56,49 @@ public class ProfileFragment extends Fragment {
         tvNext = view.findViewById(R.id.tvNext);
         tvCoins = view.findViewById(R.id.tvCoins);
         tvBadges = view.findViewById(R.id.tvBadges);
-
         progress = view.findViewById(R.id.progress);
         progressXp = view.findViewById(R.id.progressXp);
-
         btnChangePass = view.findViewById(R.id.btnChangePass);
         btnLogout = view.findViewById(R.id.btnLogout);
-
-        btnChangePass.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), ChangePasswordActivity.class)));
+        btnBossFight = view.findViewById(R.id.btnBossFight);
+        btnBossFight.setVisibility(View.GONE);
 
         btnLogout.setOnClickListener(v -> doLogout());
+        btnBossFight.setOnClickListener(v -> {
+            Intent i = new Intent(requireContext(), BossPrepActivity.class);
+            startActivity(i);
+        });
 
-        loadUser();
+        load();
     }
 
+    // Kada se vratiš iz borbe, onResume će ponovo pozvati load()
     @Override
     public void onResume() {
         super.onResume();
-        loadUser();
+        load();
     }
 
-    private void loadUser() {
-        progress.setVisibility(View.VISIBLE);
-
-        try {
-            userRepo.getCurrentUser()
-                    .addOnSuccessListener(this::applyUser)
-                    .addOnFailureListener(e -> progress.setVisibility(View.GONE));
-        } catch (Exception e) {
-            progress.setVisibility(View.GONE);
-        }
+    private void load() {
+        if (progress != null) progress.setVisibility(View.VISIBLE);
+        userRepo.getCurrentUser().addOnSuccessListener(this::applyUser);
     }
 
     private void applyUser(DocumentSnapshot snap) {
-        progress.setVisibility(View.GONE);
+        if (!isAdded() || getContext() == null) return;
+        if (progress != null) progress.setVisibility(View.GONE);
 
         User u = snap.toObject(User.class);
         if (u == null) return;
 
-        // avatar
+        // Avatar
         int resId = getResources().getIdentifier(
                 "avatar_" + u.avatarIndex, "drawable", requireContext().getPackageName());
         if (resId != 0) ivAvatar.setImageResource(resId);
 
         tvUsername.setText(u.username != null ? u.username : "");
 
-        // QR
+        // QR Kod
         try {
             String qr = (u.qrId != null && !u.qrId.isEmpty()) ? u.qrId : u.uid;
             BarcodeEncoder encoder = new BarcodeEncoder();
@@ -108,32 +106,77 @@ public class ProfileFragment extends Fragment {
             ivQr.setImageBitmap(bitmap);
         } catch (Exception ignored) {}
 
-        // Level progress
+        // Level & XP progress
         int threshold = LevelingService.getThresholdForLevel(u.level);
         int xp = (int) u.xp;
         int pct = threshold <= 0 ? 0 : (int) Math.round((xp * 100.0) / threshold);
-        if (pct < 0) pct = 0;
-        if (pct > 100) pct = 100;
+        pct = Math.max(0, Math.min(100, pct));
 
         tvLevel.setText("Level " + u.level);
         tvTitle.setText(u.title != null ? u.title : "");
-        tvPp.setText("PP: " + u.pp);
+        tvPp.setText("Power: " + u.pp);
         tvXp.setText("XP: " + xp + " / " + threshold);
         progressXp.setProgress(pct);
-
         tvNext.setText("Next level at: " + threshold + " XP");
+        tvCoins.setText("Coins: " + u.coins);
+        tvBadges.setText("Badges: " + u.badges);
 
-        tvCoins.setText("Novčići: " + u.coins);
-        tvBadges.setText("Bedževi: " + u.badges);
+        // Pozivamo pročišćenu metodu za proveru bosa
+        setupBossButton(u);
     }
+
+    private void setupBossButton(User user) {
+        // Boss fight tek od level 2
+        if (user.level < 2) {
+            btnBossFight.setVisibility(View.GONE);
+            return;
+        }
+
+        bossRepo.getCurrentBoss()
+                .addOnSuccessListener(bossDoc -> {
+                    if (!isAdded()) return;
+
+                    // Ako nema boss dokumenta -> dozvoli ulazak (spawn-ovaće se novi)
+                    if (bossDoc == null || !bossDoc.exists()) {
+                        btnBossFight.setVisibility(View.VISIBLE);
+                        return;
+                    }
+
+                    Boss currentBoss = bossDoc.toObject(Boss.class);
+                    if (currentBoss == null) {
+                        btnBossFight.setVisibility(View.GONE);
+                        return;
+                    }
+
+                    String status = currentBoss.getStatus();
+                    if (status == null) status = "";
+
+                    // Završena stanja borbe
+                    boolean finished =
+                            currentBoss.isDefeated()
+                                    || "DEFEATED".equalsIgnoreCase(status)
+                                    || "ESCAPED".equalsIgnoreCase(status);
+
+                    // Boss mora da bude za trenutni user level
+                    boolean sameLevel = currentBoss.getLevel() == user.level;
+
+                    boolean canFight = sameLevel && !finished;
+
+                    btnBossFight.setVisibility(canFight ? View.VISIBLE : View.GONE);
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) {
+                        btnBossFight.setVisibility(View.GONE);
+                    }
+                });
+
+    }
+
 
     private void doLogout() {
         FirebaseAuth.getInstance().signOut();
-
         Intent i = new Intent(requireContext(), LoginActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(i);
-
-        requireActivity().finish();
     }
 }

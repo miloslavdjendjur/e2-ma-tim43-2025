@@ -1,0 +1,9 @@
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="true">
+    <item android:drawable="@drawable/boss_miss0" android:duration="300"/>
+    <item android:drawable="@drawable/boss_miss1" android:duration="300"/>
+    <item android:drawable="@drawable/boss_miss2" android:duration="300"/>
+    <item android:drawable="@drawable/boss_miss3" android:duration="300"/>
+    <item android:drawable="@drawable/boss_miss4" android:duration="300"/>
+    <item android:drawable="@drawable/boss_miss5" android:duration="300"/>
+</animation-list>

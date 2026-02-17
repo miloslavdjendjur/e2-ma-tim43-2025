@@ -43,29 +43,29 @@ public class LoginActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String pass = etPass.getText().toString();
 
-        if (email.isEmpty() || pass.isEmpty()) { toast("Unesi email i lozinku"); return; }
+        if (email.isEmpty() || pass.isEmpty()) { toast("Enter your email & password."); return; }
 
         authRepo.login(email, pass).addOnSuccessListener(ar -> {
             FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
-            if (u == null) { toast("Greška pri prijavi"); return; }
+            if (u == null) { toast("Error while signing in."); return; }
 
             u.reload().addOnSuccessListener(x -> {
                 if (!u.isEmailVerified()) {
-                    toast("Nalog nije aktiviran email-om. Proveri inbox.");
+                    toast("Please activate your account.");
                     startActivity(new Intent(this, VerifyMailActivity.class).putExtra("email", email));
                     return;
                 }
 
                 userRepo.getUser(u.getUid()).addOnSuccessListener(this::handleUserDoc)
-                        .addOnFailureListener(e -> toast("Greška pri čitanju profila: " + e.getMessage()));
+                        .addOnFailureListener(e -> toast("Error while reading profile: " + e.getMessage()));
             });
 
-        }).addOnFailureListener(e -> toast("Prijava nije uspela: " + e.getMessage()));
+        }).addOnFailureListener(e -> toast("Error while logging in: " + e.getMessage()));
     }
 
     private void handleUserDoc(DocumentSnapshot ds) {
         FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
-        if (u == null) { toast("Sesija istekla"); return; }
+        if (u == null) { toast("Session expired"); return; }
 
         Timestamp createdAt = ds.getTimestamp("createdAt");
         long now = System.currentTimeMillis();
@@ -74,7 +74,7 @@ public class LoginActivity extends AppCompatActivity {
 
         Boolean active = ds.getBoolean("active");
         if (ageMs > maxAgeMs && !active) {
-            toast("Link je istekao (24h). Registruj se ponovo.");
+            toast("Link expired (24h). Register again.");
             return;
         }
 
@@ -82,7 +82,7 @@ public class LoginActivity extends AppCompatActivity {
         if (active == null || !active) {
             userRepo.setActive(u.getUid())
                     .addOnSuccessListener(v -> proceedToMain(u.getUid()))
-                    .addOnFailureListener(e -> { toast("Greška pri aktivaciji: " + e.getMessage()); proceedToMain(u.getUid()); });
+                    .addOnFailureListener(e -> { toast("Error while activating: " + e.getMessage()); proceedToMain(u.getUid()); });
         } else {
             proceedToMain(u.getUid());
         }

@@ -1,5 +1,6 @@
 package com.example.ui.task;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.PopupMenu;
@@ -9,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,6 +37,7 @@ public class AllTasksFragment extends Fragment {
 
     private MaterialButtonToggleGroup toggleType;
     private MaterialButtonToggleGroup toggleRange;
+    private MaterialButtonToggleGroup toggleStatus;
 
     private final TaskService taskService = new TaskService();
     private final CategoryService categoryService = new CategoryService();
@@ -44,6 +47,8 @@ public class AllTasksFragment extends Fragment {
 
     private boolean showOneTime = true;
     private boolean showRecurring = true;
+    private boolean hideDone = false;
+
     private int rangeDays = 14; // default ±14
 
     public AllTasksFragment() {
@@ -59,6 +64,7 @@ public class AllTasksFragment extends Fragment {
 
         toggleType = view.findViewById(R.id.toggleType);
         toggleRange = view.findViewById(R.id.toggleRange);
+        toggleStatus = view.findViewById(R.id.toggleStatus);
 
         adapter = new AllTasksAdapter(
                 (task, occKey) -> openDetail(task, occKey),
@@ -68,29 +74,54 @@ public class AllTasksFragment extends Fragment {
         );
         rv.setAdapter(adapter);
 
-        // defaults: oba tipa uključena
+        // ===== DEFAULTS =====
+        // Type: oba uključena (pošto je singleSelection=false)
         toggleType.check(R.id.btnTypeOneTime);
         toggleType.check(R.id.btnTypeRecurring);
+        showOneTime = true;
+        showRecurring = true;
 
-        // default range: ±14
+        // Range: ±14
         toggleRange.check(R.id.btnRange14);
+        rangeDays = 14;
 
+        // Status: All
+        toggleStatus.check(R.id.btnStatusAll);
+        hideDone = false;
+
+        // ===== LISTENERS =====
+
+        // Type filter (multi-selection)
         toggleType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            showOneTime = group.getCheckedButtonIds().contains(R.id.btnTypeOneTime);
-            showRecurring = group.getCheckedButtonIds().contains(R.id.btnTypeRecurring);
+            // Ne zanima nas isChecked ovde — samo čitamo trenutno čekirane
+            List<Integer> checked = group.getCheckedButtonIds();
+            showOneTime = checked.contains(R.id.btnTypeOneTime);
+            showRecurring = checked.contains(R.id.btnTypeRecurring);
             render();
         });
 
+        // Range filter (single-selection)
         toggleRange.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (!isChecked) return;
+
             if (checkedId == R.id.btnRange7) rangeDays = 7;
             else if (checkedId == R.id.btnRange14) rangeDays = 14;
             else if (checkedId == R.id.btnRange30) rangeDays = 30;
+
+            render();
+        });
+
+        // Status filter (NOVO)
+        toggleStatus.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+
+            hideDone = (checkedId == R.id.btnStatusHideDone);
             render();
         });
 
         loadData();
     }
+
 
     @Override
     public void onResume() {
@@ -134,19 +165,29 @@ public class AllTasksFragment extends Fragment {
         to.add(Calendar.DAY_OF_YEAR, rangeDays);
 
         for (Task t : allTasks) {
+
+            // -------- SINGLE --------
             if (Task.TYPE_SINGLE.equals(t.getType())) {
-                if (showOneTime) items.add(new AllTasksAdapter.DisplayItem(t, null));
+                if (!showOneTime) continue;
+
+                if (hideDone && Task.STATUS_DONE.equals(t.getStatus())) continue;
+
+                items.add(new AllTasksAdapter.DisplayItem(t, null));
                 continue;
             }
 
+            // -------- RECURRING --------
             if (Task.TYPE_RECURRING.equals(t.getType())) {
-                if (showRecurring) items.addAll(expandRecurring(t, from, to));
+                if (!showRecurring) continue;
+
+                items.addAll(expandRecurring(t, from, to, hideDone));
             }
         }
 
         items.sort(Comparator.comparingLong(this::itemSortMillis).reversed());
         adapter.setData(items, allCategories);
     }
+
 
     private long itemSortMillis(AllTasksAdapter.DisplayItem item) {
         Task t = item.task;
@@ -172,7 +213,7 @@ public class AllTasksFragment extends Fragment {
         return 0L;
     }
 
-    private List<AllTasksAdapter.DisplayItem> expandRecurring(Task t, Calendar from, Calendar to) {
+    private List<AllTasksAdapter.DisplayItem> expandRecurring(Task t, Calendar from, Calendar to, boolean hideDone) {
         List<AllTasksAdapter.DisplayItem> out = new ArrayList<>();
         if (t.getStartDate() == null) return out;
 
@@ -206,14 +247,25 @@ public class AllTasksFragment extends Fragment {
 
         Calendar cur = (Calendar) start.clone();
 
+        // preskoči do rangeStart
         for (int guard = 0; guard < 5000 && cur.before(rangeStart); guard++) {
             if (unit.contains("Week")) cur.add(Calendar.WEEK_OF_YEAR, interval);
             else cur.add(Calendar.DAY_OF_YEAR, interval);
         }
 
+        // generiši occurrence
         for (int guard = 0; guard < 5000 && !cur.after(rangeEnd); guard++) {
             String dateKey = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cur.getTime());
-            out.add(new AllTasksAdapter.DisplayItem(t, dateKey));
+
+            // status filter za recurring: preskoči DONE occurrence
+            if (hideDone) {
+                String occ = t.getOccurrenceStatusForDateKey(dateKey);
+                if (!Task.STATUS_DONE.equals(occ)) {
+                    out.add(new AllTasksAdapter.DisplayItem(t, dateKey));
+                }
+            } else {
+                out.add(new AllTasksAdapter.DisplayItem(t, dateKey));
+            }
 
             if (unit.contains("Week")) cur.add(Calendar.WEEK_OF_YEAR, interval);
             else cur.add(Calendar.DAY_OF_YEAR, interval);
@@ -221,6 +273,7 @@ public class AllTasksFragment extends Fragment {
 
         return out;
     }
+
 
     private void openDetail(Task task, String occKey) {
         if (task.getId() == null || task.getId().isEmpty()) {
@@ -362,10 +415,14 @@ public class AllTasksFragment extends Fragment {
                 return;
             }
             taskService.updateTaskOccurrenceStatus(task.getId(), occKey, newStatus, new TaskService.OnTaskActionEventListener() {
-                @Override public void onSuccess(String message) {
-                    if (!isAdded()) return;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    loadData();
+                @Override
+                public void onSuccess(String message) {
+                    if ("LEVEL_UP".equals(message)) {
+                        Intent i = new Intent(getContext(), com.example.ui.boss.BossPrepActivity.class);
+                        startActivity(i);
+                    } else {
+                        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    }
                 }
                 @Override public void onError(String error) {
                     if (!isAdded()) return;
@@ -377,8 +434,15 @@ public class AllTasksFragment extends Fragment {
             taskService.updateTaskStatus(task.getId(), newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override public void onSuccess(String message) {
                     if (!isAdded()) return;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    loadData();
+                    if ("LEVEL_UP".equals(message)) {
+                        Intent i = new Intent(getContext(), com.example.myapplication.MainActivity.class);
+                        i.putExtra("openTab", "profile");
+                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        startActivity(i);
+                    } else {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                        loadData();
+                    }
                 }
                 @Override public void onError(String error) {
                     if (!isAdded()) return;
@@ -406,8 +470,15 @@ public class AllTasksFragment extends Fragment {
                         taskService.updateTaskOccurrenceStatus(task.getId(), occKey, picked, new TaskService.OnTaskActionEventListener() {
                             @Override public void onSuccess(String message) {
                                 if (!isAdded()) return;
-                                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                                loadData();
+                                if ("LEVEL_UP".equals(message)) {
+                                    Intent i = new Intent(getContext(), com.example.myapplication.MainActivity.class);
+                                    i.putExtra("openTab", "profile");
+                                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                    startActivity(i);
+                                } else {
+                                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                                    loadData();
+                                }
                             }
                             @Override public void onError(String error) {
                                 if (!isAdded()) return;
@@ -417,10 +488,14 @@ public class AllTasksFragment extends Fragment {
                         });
                     } else {
                         taskService.updateTaskStatus(task.getId(), picked, new TaskService.OnTaskActionEventListener() {
-                            @Override public void onSuccess(String message) {
-                                if (!isAdded()) return;
-                                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                                loadData();
+                            @Override
+                            public void onSuccess(String message) {
+                                if ("LEVEL_UP".equals(message)) {
+                                    Intent i = new Intent(getContext(), com.example.ui.boss.BossPrepActivity.class);
+                                    startActivity(i);
+                                } else {
+                                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                                }
                             }
                             @Override public void onError(String error) {
                                 if (!isAdded()) return;

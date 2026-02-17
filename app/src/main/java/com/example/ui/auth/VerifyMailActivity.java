@@ -22,19 +22,19 @@ public class VerifyMailActivity extends AppCompatActivity {
         Button btnResend = findViewById(R.id.btnResend);
 
         String email = getIntent().getStringExtra("email");
-        tv.setText("Na " + (email != null ? email : "email adresu") + " je poslat link za aktivaciju. Link važi 24h.");
+        tv.setText("Activation link sent to " + (email != null ? email : "email") + ". It will expire in 24h.");
 
         btnResend.setOnClickListener(v -> {
             FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
-            if (u == null) { toast("Uloguj se pa pokušaj ponovo."); return; }
+            if (u == null) { toast("Login & try again.."); return; }
 
             new UserRepository().resetVerificationWindow(u.getUid())
                     .addOnSuccessListener(ignored ->
                             u.sendEmailVerification()
-                                    .addOnSuccessListener(xx -> toast("Poslali smo novi verifikacioni email."))
-                                    .addOnFailureListener(e -> toast("Slanje nije uspelo: " + e.getMessage()))
+                                    .addOnSuccessListener(xx -> toast("New verification email sent."))
+                                    .addOnFailureListener(e -> toast("Sending unsuccessful: " + e.getMessage()))
                     )
-                    .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+                    .addOnFailureListener(e -> toast("Error: " + e.getMessage()));
         });
     }
 

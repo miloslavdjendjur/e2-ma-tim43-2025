@@ -40,7 +40,7 @@
             android:layout_gravity="center"
             android:layout_marginTop="10dp" />
 
-        <!-- Level progress (iz activity_level_progress.xml, ali sa unik. id-jevima) -->
+        <!-- Level progress -->
         <TextView
             android:id="@+id/tvLevelProg"
             android:layout_width="wrap_content"
@@ -101,11 +101,20 @@
             android:layout_height="wrap_content"
             android:text="Badges: 0" />
 
+        <!-- Boss fight test button -->
+        <Button
+            android:id="@+id/btnBossFight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:backgroundTint="#f96b80"
+            android:text="Boss fight" />
+
         <Button
             android:id="@+id/btnChangePass"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="10dp"
             android:text="Change password" />
 
         <Button

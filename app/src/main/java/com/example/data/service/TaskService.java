@@ -201,7 +201,6 @@ public class TaskService {
             @NonNull Map<String, Object> taskUpdates,
             @NonNull OnTaskActionEventListener listener
     ) {
-        // 1. Determine Date & Quota Keys
         String dateKey;
         if (occurrenceDateKey != null && !occurrenceDateKey.isEmpty()) {
             dateKey = occurrenceDateKey;
@@ -214,31 +213,23 @@ public class TaskService {
         final String quotaKey = quotaKeyForTask(task);
         final String periodKey = (quotaKey != null) ? periodKeyForQuota(quotaKey, dateKey) : dateKey;
 
-        // 2. Helper to run transaction after quota check
         Runnable runTransaction = () -> {
             db.runTransaction(transaction -> {
-                // A. Read User
                 DocumentReference userDoc = usersRef.document(uid);
                 DocumentSnapshot userSnap = transaction.get(userDoc);
                 User user = userSnap.toObject(User.class);
                 if (user == null) {
-                    // Fallback if user doesn't exist yet (should not happen in prod)
                     user = new User();
                     user.uid = uid;
                 }
 
-                // B. Check Quota limit (Double check inside if needed, but we do pre-check below)
-                // Note: Counting docs inside transaction is hard. We rely on the pre-check.
-                // Assuming we are allowed to award XP here.
-
-                // C. Calculate Leveling using LevelingService
+                // LevelingService.addXp menja user objekat i vraća true ako je nivo skočio
                 boolean leveledUp = LevelingService.addXp(user, xpPotential);
 
-                // D. Write updates
-                transaction.set(userDoc, user); // Saves updated XP, Level, PP, Title
-                transaction.update(tasksRef.document(taskId), taskUpdates); // Updates task status
+                transaction.set(userDoc, user); // Čuva XP, Level, PP, Title i lastLevelUpDate
+                transaction.update(tasksRef.document(taskId), taskUpdates); // Update statusa taska
 
-                // E. Write XP Event
+                // Logovanje XP događaja
                 DocumentReference newEventRef = xpEventsRef.document();
                 Map<String, Object> evt = new HashMap<>();
                 evt.put("userId", uid);
@@ -253,20 +244,20 @@ public class TaskService {
 
                 transaction.set(newEventRef, evt);
 
-                return leveledUp; // Result of transaction
+                return leveledUp;
             }).addOnSuccessListener(leveledUp -> {
-                String msg = "Status updated: done (+" + xpPotential + " XP)";
-                if (leveledUp) msg += " LEVEL UP!";
-                listener.onSuccess(msg);
+                if (leveledUp) {
+                    listener.onSuccess("LEVEL_UP");
+                } else {
+                    listener.onSuccess("Status updated: done (+" + xpPotential + " XP)");
+                }
             }).addOnFailureListener(e -> listener.onError("Transaction failed: " + e.getMessage()));
         };
 
-        // 3. Helper for Quota Limit Reached (No XP)
         Runnable runNoXpUpdate = () -> {
             WriteBatch batch = db.batch();
             batch.update(tasksRef.document(taskId), taskUpdates);
 
-            // Log failed event (awarded=false)
             Map<String, Object> evt = new HashMap<>();
             evt.put("userId", uid);
             evt.put("taskId", taskId);
@@ -274,7 +265,7 @@ public class TaskService {
             evt.put("quotaKey", quotaKey);
             evt.put("periodKey", periodKey);
             evt.put("xpAdded", 0);
-            evt.put("awarded", false); // Quota hit
+            evt.put("awarded", false);
             evt.put("createdAt", Timestamp.now());
             batch.set(xpEventsRef.document(), evt);
 
@@ -283,12 +274,9 @@ public class TaskService {
                     .addOnFailureListener(e -> listener.onError("Update error: " + e.getMessage()));
         };
 
-        // 4. Check Quota Logic
         if (quotaKey == null) {
-            // No quota limits (e.g. unique combinations), always award
             runTransaction.run();
         } else {
-            // Check count in Firestore
             int limit = quotaLimitForKey(quotaKey);
             xpEventsRef
                     .whereEqualTo("userId", uid)

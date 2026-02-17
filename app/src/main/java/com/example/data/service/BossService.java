@@ -1,7 +1,8 @@
 package com.example.data.service;
 
-import com.example.data.model.Boss;
-import com.example.data.model.FightResult;
+import com.example.data.model.boss.AttackResult;
+import com.example.data.model.boss.Boss;
+import com.example.data.model.boss.FightResult;
 import com.example.data.model.Task;
 import com.example.data.model.equipment.type.ClothesType;
 import com.example.data.model.equipment.type.WeaponType;
@@ -14,7 +15,6 @@ import com.google.firebase.Timestamp;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -28,7 +28,7 @@ public class BossService {
     private final EquipmentRepository equipmentRepo = new EquipmentRepository();
     private final Random random = new Random();
 
-    // ---- Quota keys (identično kao TaskService) ----
+    // ---- Quota keys (based on BASE tiers) ----
     private static final String QUOTA_VE_NORMAL = "VE_NORMAL";                   // diff 1 + imp 1
     private static final String QUOTA_EASY_IMPORTANT = "EASY_IMPORTANT";         // diff 3 + imp 3
     private static final String QUOTA_HARD_EXT_IMPORTANT = "HARD_EXT_IMPORTANT"; // diff 7 + imp 10
@@ -41,8 +41,7 @@ public class BossService {
         if (bossLevel <= 1) return 200;
         long hp = 200;
         for (int i = 2; i <= bossLevel; i++) {
-            // integer math: hp * 2.5 == hp*5/2
-            hp = (hp * 5) / 2;
+            hp = (hp * 5) / 2; // *2.5
         }
         return hp;
     }
@@ -51,22 +50,14 @@ public class BossService {
         if (bossLevel <= 1) return 200;
         long coins = 200;
         for (int i = 2; i <= bossLevel; i++) {
-            // integer math: +20% == *120/100
-            coins = (coins * 120) / 100;
+            coins = (coins * 120) / 100; // +20%
         }
         return (coins > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) coins;
     }
 
     // ------------------ BOSS RESPWAN / START BATTLE ------------------
 
-    /**
-     * Spec: neporažen bos se pojavljuje ponovo posle sledećeg nivoa sve dok ne bude pobeđen.
-     * Ovo vraća bosa za borbu:
-     * - ako postoji current boss i nije defeated -> taj isti
-     * - inače pravi bosa za expectedBossLevel
-     * Uvek resetuje attacksLeft na attacksForThisBattle.
-     */
-    public com.google.android.gms.tasks.Task<Boss> getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
+    public com.google.android.gms.tasks.Task<Boss>  getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
         TaskCompletionSource<Boss> tcs = new TaskCompletionSource<>();
 
         bossRepo.getCurrentBoss()
@@ -75,13 +66,14 @@ public class BossService {
                     if (doc != null && doc.exists()) current = doc.toObject(Boss.class);
 
                     Boss bossToFight;
-                    if (current != null && !current.isDefeated()) {
+                    if (current != null && !current.isDefeated() && current.getLevel() == expectedBossLevel) {
                         bossToFight = current;
                         bossToFight.setStatus("ACTIVE");
                     } else {
                         long maxHp = calculateMaxHp(expectedBossLevel);
                         bossToFight = new Boss(expectedBossLevel, maxHp);
                     }
+
 
                     bossToFight.setAttacksLeft(Math.max(1, attacksForThisBattle));
 
@@ -97,26 +89,18 @@ public class BossService {
     // ------------------ SUCCESS RATE (ETAPA + KVOTE) ------------------
 
     private static class Attempt {
-        String idKey;          // unique key for stable ordering
-        Timestamp when;        // occurrence time / execution time
-        String status;         // active/done/paused/canceled
-        String quotaKey;       // may be null
-        String periodKey;      // depends on quota
+        String idKey;
+        Timestamp when;
+        String status;
+        String quotaKey;
+        String periodKey;
     }
 
-    /**
-     * Spec:
-     * - etapa = period između levela (filter >= lastLevelUpDate)
-     * - uspešnost = done / total created (exclude paused/canceled)
-     * - tasks beyond quota are excluded from BOTH numerator and denominator
-     * - recurring uses per-occurrence statuses; key format: yyyy-MM-dd
-     */
     public com.google.android.gms.tasks.Task<Double> calculateTaskSuccessRate(Timestamp lastLevelUp) {
         TaskCompletionSource<Double> tcs = new TaskCompletionSource<>();
 
         taskRepo.getTasks(tasks -> {
             if (tasks == null || tasks.isEmpty()) {
-                // Spec ne kaže “bonus 100%”, ovo je sigurnije (nema free win)
                 tcs.setResult(0.0);
                 return;
             }
@@ -126,7 +110,6 @@ public class BossService {
             for (Task t : tasks) {
                 String quotaKey = quotaKeyForTask(t);
 
-                // SINGLE
                 if (Task.TYPE_SINGLE.equals(t.getType())) {
                     Timestamp exec = t.getExecutionTime();
                     if (!isInStage(exec, lastLevelUp)) continue;
@@ -141,15 +124,12 @@ public class BossService {
                     a.quotaKey = quotaKey;
                     a.periodKey = computePeriodKey(quotaKey, dateKeyFromTimestamp(a.when));
                     attempts.add(a);
-                }
-
-                // RECURRING (po occurrence-u)
-                else if (Task.TYPE_RECURRING.equals(t.getType())) {
+                } else if (Task.TYPE_RECURRING.equals(t.getType())) {
                     Map<String, String> occ = t.getOccurrenceStatuses();
                     if (occ == null || occ.isEmpty()) continue;
 
                     for (Map.Entry<String, String> e : occ.entrySet()) {
-                        String dateKey = e.getKey(); // yyyy-MM-dd
+                        String dateKey = e.getKey();
                         Timestamp occTs = timestampEndOfDay(dateKey);
                         if (!isInStage(occTs, lastLevelUp)) continue;
 
@@ -172,7 +152,6 @@ public class BossService {
                 return;
             }
 
-            // 1) Group by quotaKey+periodKey and enforce limits
             List<Attempt> filtered = applyQuotaFiltering(attempts);
 
             if (filtered.isEmpty()) {
@@ -194,12 +173,10 @@ public class BossService {
     }
 
     private List<Attempt> applyQuotaFiltering(List<Attempt> attempts) {
-        // Sort attempts deterministically by time then idKey
         attempts.sort(Comparator
                 .comparing((Attempt a) -> a.when.toDate())
                 .thenComparing(a -> a.idKey));
 
-        // Bucket per (quotaKey|periodKey). If quotaKey null => always include.
         List<Attempt> out = new ArrayList<>();
         java.util.HashMap<String, Integer> counter = new java.util.HashMap<>();
 
@@ -216,7 +193,7 @@ public class BossService {
             if (curr < limit) {
                 out.add(a);
                 counter.put(bucket, curr + 1);
-            } // else: over quota -> excluded from success-rate (spec)
+            }
         }
 
         return out;
@@ -230,17 +207,20 @@ public class BossService {
 
     private String safe(String s) { return (s == null) ? "" : s; }
 
-    // ------------------ QUOTA (isto kao TaskService) ------------------
+    // ------------------ QUOTA (FIX: uses BASE XP tiers) ------------------
 
     private String quotaKeyForTask(Task t) {
         if (t == null) return null;
 
-        if (t.getImportanceXp() == 100) return QUOTA_SPECIAL;
-        if (t.getDifficultyXp() == 20) return QUOTA_EXTREMELY_HARD;
+        int baseImp = t.getBaseImportanceXp();
+        int baseDiff = t.getBaseDifficultyXp();
 
-        if (t.getDifficultyXp() == 1 && t.getImportanceXp() == 1) return QUOTA_VE_NORMAL;
-        if (t.getDifficultyXp() == 3 && t.getImportanceXp() == 3) return QUOTA_EASY_IMPORTANT;
-        if (t.getDifficultyXp() == 7 && t.getImportanceXp() == 10) return QUOTA_HARD_EXT_IMPORTANT;
+        if (baseImp == 100) return QUOTA_SPECIAL;
+        if (baseDiff == 20) return QUOTA_EXTREMELY_HARD;
+
+        if (baseDiff == 1 && baseImp == 1) return QUOTA_VE_NORMAL;
+        if (baseDiff == 3 && baseImp == 3) return QUOTA_EASY_IMPORTANT;
+        if (baseDiff == 7 && baseImp == 10) return QUOTA_HARD_EXT_IMPORTANT;
 
         return null;
     }
@@ -318,10 +298,6 @@ public class BossService {
         return dateKey;
     }
 
-    /**
-     * Recurring key is yyyy-MM-dd. We treat it as end-of-day so same-day occurrences are not accidentally excluded
-     * when lastLevelUpDate is mid-day.
-     */
     private Timestamp timestampEndOfDay(String dateKey) {
         try {
             String[] parts = dateKey.split("-");
@@ -341,8 +317,40 @@ public class BossService {
     // ------------------ FIGHT ------------------
 
     /**
-     * Async attack: persists boss state before returning result.
+     * Recommended: BossService generates random (0..100) and returns detailed AttackResult for UI.
      */
+    public com.google.android.gms.tasks.Task<AttackResult> performAttack(Boss boss, int damage, double successRate) {
+        TaskCompletionSource<AttackResult> tcs = new TaskCompletionSource<>();
+
+        int roll = random.nextInt(101); // 0..100 (spec)
+        boolean hit = roll < successRate;
+
+        if (hit) {
+            long newHp = Math.max(0, boss.getCurrentHp() - (long) damage);
+            boss.setCurrentHp(newHp);
+            if (newHp == 0) {
+                boss.setStatus("DEFEATED");
+            }
+        }
+
+        boss.setAttacksLeft(Math.max(0, boss.getAttacksLeft() - 1));
+        if (!boss.isDefeated() && boss.getAttacksLeft() <= 0) {
+            boss.setStatus("ESCAPED");
+        }
+
+        bossRepo.saveBoss(boss)
+                .addOnSuccessListener(v -> tcs.setResult(
+                        new AttackResult(hit, hit ? damage : 0, boss.getCurrentHp(), boss.getAttacksLeft(), roll)
+                ))
+                .addOnFailureListener(tcs::setException);
+
+        return tcs.getTask();
+    }
+
+    /**
+     * Backward-compatible: if UI already supplies randomValue.
+     */
+    @Deprecated
     public com.google.android.gms.tasks.Task<Boolean> performAttack(Boss boss, int damage, double successRate, int randomValue) {
         TaskCompletionSource<Boolean> tcs = new TaskCompletionSource<>();
 
@@ -352,13 +360,11 @@ public class BossService {
             long newHp = Math.max(0, boss.getCurrentHp() - (long) damage);
             boss.setCurrentHp(newHp);
             if (newHp == 0) {
-                boss.setDefeated(true);
                 boss.setStatus("DEFEATED");
             }
         }
 
         boss.setAttacksLeft(Math.max(0, boss.getAttacksLeft() - 1));
-
         if (!boss.isDefeated() && boss.getAttacksLeft() <= 0) {
             boss.setStatus("ESCAPED");
         }
@@ -392,12 +398,13 @@ public class BossService {
             dropChanceMultiplier = 0.0;
         }
 
-        int finalCoins = (int) (baseCoins * rewardMultiplier);
+        int finalCoins = (int) Math.round(baseCoins * rewardMultiplier);
 
         boolean dropSuccess = false;
         if (rewardMultiplier > 0) {
             int chance = (int) Math.round(20.0 * dropChanceMultiplier);
-            if (random.nextInt(100) < chance) dropSuccess = true;
+            int roll = random.nextInt(101); // 0..100
+            if (roll < chance) dropSuccess = true;
         }
 
         final int coinsToAdd = finalCoins;
@@ -405,7 +412,8 @@ public class BossService {
 
         equipmentRepo.addCoins(coinsToAdd).continueWithTask(task -> {
             if (!hasDrop) {
-                return Tasks.forResult(new FightResult(victory, coinsToAdd, null, false));
+                return Tasks.forResult(new FightResult(victory, coinsToAdd, null, false,
+                        maxHp, currentHp, rewardMultiplier, dropChanceMultiplier));
             }
 
             boolean isWeapon = random.nextInt(100) < 5;
@@ -413,23 +421,41 @@ public class BossService {
             if (isWeapon) {
                 WeaponType wType = random.nextBoolean() ? WeaponType.SWORD : WeaponType.BOW;
                 return equipmentRepo.upsertWeapon(wType, 0, 0.0002)
-                        .continueWith(t -> new FightResult(victory, coinsToAdd, wType.name(), true));
+                        .continueWith(t -> new FightResult(victory, coinsToAdd, wType.name(), true,
+                                maxHp, currentHp, rewardMultiplier, dropChanceMultiplier));
             } else {
                 int cRoll = random.nextInt(3);
                 ClothesType cType = (cRoll == 0) ? ClothesType.GLOVES : (cRoll == 1) ? ClothesType.SHIELD : ClothesType.BOOTS;
 
-                // Spec defaults (samo da ne bude hardcoded 5):
-                // Gloves +10% PP, Shield +10% success.
-                // Boots = šansa za +1 napad (vrednost je “chance%” koju ti repo već skladišti kako hoćeš)
-                int value = (cType == ClothesType.BOOTS) ? 25 : 10;
+                // Spec:
+                //  - Gloves: +10% PP
+                //  - Shield: +10% max HP
+                //  - Boots:  +40% chance for ONE extra attack in the next fight (per pair)
+                // NOTE: value is stored as a percentage. UI/Battle start logic should interpret
+                // BOOTS value as "extra attack chance %" (not a flat stat like PP/HP).
+                int value = (cType == ClothesType.BOOTS) ? 40 : 10;
+
 
                 return equipmentRepo.equipClothes(cType, value)
-                        .continueWith(t -> new FightResult(victory, coinsToAdd, cType.name(), false));
+                        .continueWith(t -> new FightResult(victory, coinsToAdd, cType.name(), false,
+                                maxHp, currentHp, rewardMultiplier, dropChanceMultiplier));
             }
         }).addOnSuccessListener(tcs::setResult).addOnFailureListener(tcs::setException);
 
         return tcs.getTask();
     }
+
+    /**
+     * Spec: Boots grant a % chance to gain ONE extra attack for the next fight.
+     */
+    public int computeAttacksForBattle(int baseAttacks, Integer bootsChancePercent) {
+        int attacks = Math.max(1, baseAttacks);
+        if (bootsChancePercent == null || bootsChancePercent <= 0) return attacks;
+        int roll = random.nextInt(100); // 0..99
+        if (roll < bootsChancePercent) attacks += 1;
+        return attacks;
+    }
+
 
     public BossRepository getRepo() { return bossRepo; }
 }

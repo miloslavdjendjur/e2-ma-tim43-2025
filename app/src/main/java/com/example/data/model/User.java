@@ -24,7 +24,7 @@ public class User {
     public User() {}
     public User(String uid, String email, String username, int avatarIndex) {
         this.uid = uid; this.email = email; this.username = username; this.avatarIndex = avatarIndex;
-        this.active = false; this.level = 1; this.title = "Novajlija";
+        this.active = false; this.level = 1; this.title = "Rookie";
         this.xp = 0; this.pp = 0; this.coins = 0; this.badges = 0; this.qrId = uid;
         this.createdAt = Timestamp.now();
         this.lastLevelUpDate = Timestamp.now(); // Inicijalno je isto kad i kreiranje

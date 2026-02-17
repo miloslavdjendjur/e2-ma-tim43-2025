@@ -67,6 +67,11 @@
         <argument android:name="dateKey" app:argType="string" android:defaultValue="@null" />
     </fragment>
 
+    <activity
+        android:id="@+id/bossPreparationActivity"
+        android:name="com.example.ui.boss.BossPrepActivity"
+        android:label="Boss Preparation" />
+
     <fragment
         android:id="@+id/allianceChatFragment"
         android:name="com.example.ui.alliance.AllianceChatFragment"

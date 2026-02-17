@@ -30,15 +30,12 @@
         <activity android:name="com.example.ui.level.LevelProgressActivity" />
         <activity android:name="com.example.ui.equipment.EquipmentStoreActivity" />
         <activity android:name="com.example.ui.equipment.MyEquipmentActivity" />
-<<<<<<< Updated upstream
-=======
+
         <activity android:name="com.example.ui.boss.BossPrepActivity" />
         <activity android:name="com.example.ui.boss.BossFightActivity" />
         <activity android:name="com.example.ui.boss.FightResultActivity" />
         <service android:name="com.example.data.service.AllianceService" />
         <receiver android:name="com.example.data.service.NotificationReceiver" android:exported="false" />
-
->>>>>>> Stashed changes
     </application>
 
 </manifest>

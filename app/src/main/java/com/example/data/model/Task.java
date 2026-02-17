@@ -28,9 +28,19 @@ public class Task {
     private String type;
     private String userId;
 
-    // XP (your current logic)
+    // XP (current/scaled XP used for awarding)
     private int difficultyXp;
     private int importanceXp;
+
+    /**
+     * BASE XP values used for quota logic (spec values):
+     * difficulty: 1,3,7,20
+     * importance: 1,3,10,100
+     *
+     * If old tasks don't have these saved, we infer them from current XP.
+     */
+    private Integer baseDifficultyXp;
+    private Integer baseImportanceXp;
 
     // Recurrence
     private int interval;
@@ -39,17 +49,7 @@ public class Task {
     private Timestamp startDate;     // for RECURRING
     private Timestamp endDate;       // optional for RECURRING
 
-    /**
-     * For recurring tasks: status is per occurrence date.
-     * Key format: yyyy-MM-dd : status
-     */
     private Map<String, String> occurrenceStatuses;
-
-    /**
-     * XP processing flags (to prevent double-awarding if user toggles status back/forth).
-     * SINGLE: xpProcessed == true means we already processed XP for this task when it was first set to DONE.
-     * RECURRING: occurrenceXpProcessed[dateKey] == true means we processed XP for that occurrence.
-     */
     private Boolean xpProcessed;
     private Map<String, Boolean> occurrenceXpProcessed;
 
@@ -57,6 +57,51 @@ public class Task {
 
     public int getTotalXp() {
         return difficultyXp + importanceXp;
+    }
+
+    // ---- BASE XP (for quota) ----
+
+    public int getBaseDifficultyXp() {
+        if (baseDifficultyXp != null) return baseDifficultyXp;
+        return inferBaseDifficultyFromCurrent(difficultyXp);
+    }
+
+    public void setBaseDifficultyXp(Integer baseDifficultyXp) {
+        this.baseDifficultyXp = baseDifficultyXp;
+    }
+
+    public int getBaseImportanceXp() {
+        if (baseImportanceXp != null) return baseImportanceXp;
+        return inferBaseImportanceFromCurrent(importanceXp);
+    }
+
+    public void setBaseImportanceXp(Integer baseImportanceXp) {
+        this.baseImportanceXp = baseImportanceXp;
+    }
+
+    private int inferBaseDifficultyFromCurrent(int current) {
+        // Allowed base diffs: 1,3,7,20
+        int[] base = new int[]{1, 3, 7, 20};
+        return nearest(base, current);
+    }
+
+    private int inferBaseImportanceFromCurrent(int current) {
+        // Allowed base imps: 1,3,10,100
+        int[] base = new int[]{1, 3, 10, 100};
+        return nearest(base, current);
+    }
+
+    private int nearest(int[] base, int value) {
+        int best = base[0];
+        int bestDiff = Math.abs(value - best);
+        for (int i = 1; i < base.length; i++) {
+            int d = Math.abs(value - base[i]);
+            if (d < bestDiff) {
+                bestDiff = d;
+                best = base[i];
+            }
+        }
+        return best;
     }
 
     // ---- XP processed helpers ----
@@ -136,10 +181,26 @@ public class Task {
     public void setUserId(String userId) { this.userId = userId; }
 
     public int getDifficultyXp() { return difficultyXp; }
-    public void setDifficultyXp(int difficultyXp) { this.difficultyXp = difficultyXp; }
+
+    public void setDifficultyXp(int difficultyXp) {
+        this.difficultyXp = difficultyXp;
+        if (this.baseDifficultyXp == null) {
+            if (difficultyXp == 1 || difficultyXp == 3 || difficultyXp == 7 || difficultyXp == 20) {
+                this.baseDifficultyXp = difficultyXp;
+            }
+        }
+    }
 
     public int getImportanceXp() { return importanceXp; }
-    public void setImportanceXp(int importanceXp) { this.importanceXp = importanceXp; }
+
+    public void setImportanceXp(int importanceXp) {
+        this.importanceXp = importanceXp;
+        if (this.baseImportanceXp == null) {
+            if (importanceXp == 1 || importanceXp == 3 || importanceXp == 10 || importanceXp == 100) {
+                this.baseImportanceXp = importanceXp;
+            }
+        }
+    }
 
     public int getInterval() { return interval; }
     public void setInterval(int interval) { this.interval = interval; }

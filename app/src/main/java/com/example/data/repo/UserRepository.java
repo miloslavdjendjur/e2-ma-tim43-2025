@@ -56,7 +56,7 @@ public class UserRepository {
             userDoc.put("avatarIndex", u.avatarIndex);     // 0..4
             userDoc.put("active", false);                  // start: false
             userDoc.put("level", u.level);                 // 1
-            userDoc.put("title", u.title);                 // "Novajlija"
+            userDoc.put("title", u.title);                 // "Rookie"
             userDoc.put("xp", u.xp);                       // 0
             userDoc.put("pp", u.pp);                       // 0
             userDoc.put("coins", u.coins);                 // 0

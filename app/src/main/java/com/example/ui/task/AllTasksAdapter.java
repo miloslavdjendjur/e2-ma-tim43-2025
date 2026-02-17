@@ -91,10 +91,8 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
             }
         } else if (Task.TYPE_RECURRING.equals(t.getType())) {
             if (occKey != null) {
-                // occKey = yyyy-MM-dd -> dd.MM
                 datePart = toDdMm(occKey);
             }
-            // time-of-day uzmi iz startDate (ako postoji)
             if (t.getStartDate() != null) {
                 timePart = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(t.getStartDate().toDate());
             }
@@ -122,10 +120,11 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
         String typeLabel = isRecurring ? "Recurring" : "One-time";
         h.tvStatus.setText(typeLabel + " • " + status);
 
-
         // ---- checkbox quick done ----
         h.cbDone.setOnCheckedChangeListener(null);
-        h.cbDone.setChecked(Task.STATUS_DONE.equals(status));
+        boolean done = Task.STATUS_DONE.equals(status);
+        h.cbDone.setChecked(done);
+
         h.cbDone.setOnClickListener(v -> {
             if (onQuickDoneToggle != null) onQuickDoneToggle.onToggle(t, occKey, h.cbDone.isChecked());
         });
@@ -146,6 +145,10 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
             }
         }
 
+        // vizuelno priguši DONE
+        float alpha = done ? 0.45f : 1f;
+        h.itemView.setAlpha(alpha);
+
         h.itemView.setOnClickListener(v -> {
             if (onTaskClick != null) onTaskClick.onClick(t, occKey);
         });
@@ -155,6 +158,7 @@ public class AllTasksAdapter extends RecyclerView.Adapter<AllTasksAdapter.VH> {
             return true;
         });
     }
+
 
     @Override
     public int getItemCount() { return items.size(); }

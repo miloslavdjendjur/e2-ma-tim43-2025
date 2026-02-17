@@ -1,5 +1,6 @@
 package com.example.ui.task;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -174,9 +175,12 @@ public class TaskDetailFragment extends Fragment {
             taskService.updateTaskOccurrenceStatus(taskId, dateKey, newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
-                    if (!isAdded()) return;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    loadTask();
+                    if ("LEVEL_UP".equals(message)) {
+                        Intent i = new Intent(getContext(), com.example.ui.boss.BossPrepActivity.class);
+                        startActivity(i);
+                    } else {
+                        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    }
                 }
 
                 @Override
@@ -189,9 +193,12 @@ public class TaskDetailFragment extends Fragment {
             taskService.updateTaskStatus(taskId, newStatus, new TaskService.OnTaskActionEventListener() {
                 @Override
                 public void onSuccess(String message) {
-                    if (!isAdded()) return;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    loadTask();
+                    if ("LEVEL_UP".equals(message)) {
+                        Intent i = new Intent(getContext(), com.example.ui.boss.BossPrepActivity.class);
+                        startActivity(i);
+                    } else {
+                        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    }
                 }
 
                 @Override
