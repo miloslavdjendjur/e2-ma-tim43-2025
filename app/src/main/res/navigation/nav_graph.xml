@@ -91,4 +91,11 @@
             app:argType="string" />
     </fragment>
 
+    <fragment
+        android:id="@+id/statisticsFragment"
+        android:name="com.example.ui.stats.StatisticsFragment"
+        android:label="My Statistics"
+        tools:layout="@layout/fragment_statistics" />
+
+
 </navigation>

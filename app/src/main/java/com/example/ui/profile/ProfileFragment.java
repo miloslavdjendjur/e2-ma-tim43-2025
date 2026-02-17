@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import com.example.data.model.AvatarUtils;
 import com.example.data.model.User;
@@ -33,7 +34,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvUsername;
     private TextView tvLevel, tvTitle, tvXp, tvPp, tvNext, tvCoins, tvBadges;
     private ProgressBar progress, progressXp;
-    private Button btnChangePass, btnLogout, btnBossFight;
+    private Button btnChangePass, btnLogout, btnBossFight, btnStatistics;
 
     private final UserRepository userRepo = new UserRepository();
     private final BossRepository bossRepo = new BossRepository();
@@ -62,6 +63,16 @@ public class ProfileFragment extends Fragment {
         btnLogout = view.findViewById(R.id.btnLogout);
         btnBossFight = view.findViewById(R.id.btnBossFight);
         btnBossFight.setVisibility(View.GONE);
+        Button btnStatistics = view.findViewById(R.id.btnStatistics);
+
+        btnStatistics.setOnClickListener(v -> {
+            // Navigacija ka StatisticsFragment-u
+            // Proveri ID akcije u mobile_navigation.xml, npr:
+            // Navigation.findNavController(v).navigate(R.id.action_profileFragment_to_statisticsFragment);
+
+            // ILI ako nemaš akciju, može direktno preko ID-a fragmenta:
+            Navigation.findNavController(v).navigate(R.id.statisticsFragment);
+        });
 
         btnLogout.setOnClickListener(v -> doLogout());
         btnBossFight.setOnClickListener(v -> startActivity(new Intent(requireContext(), BossPrepActivity.class)));

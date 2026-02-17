@@ -42,7 +42,6 @@
             android:layout_gravity="center"
             android:layout_marginTop="10dp" />
 
-        <!-- Level progress -->
         <TextView
             android:id="@+id/tvLevelProg"
             android:layout_width="wrap_content"
@@ -89,7 +88,6 @@
             android:layout_marginTop="6dp"
             android:textSize="14sp" />
 
-        <!-- Stats -->
         <TextView
             android:id="@+id/tvCoins"
             android:layout_width="wrap_content"
@@ -103,7 +101,6 @@
             android:layout_height="wrap_content"
             android:text="Badges: 0" />
 
-        <!-- Boss fight test button -->
         <Button
             android:id="@+id/btnBossFight"
             android:layout_width="match_parent"
@@ -111,6 +108,14 @@
             android:layout_marginTop="14dp"
             android:backgroundTint="#f96b80"
             android:text="Boss fight" />
+
+        <Button
+            android:id="@+id/btnStatistics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#4CAF50"
+            android:text="My Statistics" />
 
         <Button
             android:id="@+id/btnChangePass"
