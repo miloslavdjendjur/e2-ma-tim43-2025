@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -30,6 +30,15 @@
         <activity android:name="com.example.ui.level.LevelProgressActivity" />
         <activity android:name="com.example.ui.equipment.EquipmentStoreActivity" />
         <activity android:name="com.example.ui.equipment.MyEquipmentActivity" />
+<<<<<<< Updated upstream
+=======
+        <activity android:name="com.example.ui.boss.BossPrepActivity" />
+        <activity android:name="com.example.ui.boss.BossFightActivity" />
+        <activity android:name="com.example.ui.boss.FightResultActivity" />
+        <service android:name="com.example.data.service.AllianceService" />
+        <receiver android:name="com.example.data.service.NotificationReceiver" android:exported="false" />
+
+>>>>>>> Stashed changes
     </application>
 
 </manifest>

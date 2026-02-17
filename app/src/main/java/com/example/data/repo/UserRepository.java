@@ -12,6 +12,8 @@ import java.util.Map;
 public class UserRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    // --- USER METODE ---
+
     public Task<DocumentSnapshot> getUser(String uid) {
         return db.collection("users").document(uid).get();
     }
@@ -49,6 +51,7 @@ public class UserRepository {
             Map<String,Object> userDoc = new HashMap<>();
             userDoc.put("uid", u.uid);
             userDoc.put("email", u.email);
+<<<<<<< Updated upstream
             userDoc.put("username", u.username);           // ne menja se
             userDoc.put("avatarIndex", u.avatarIndex);     // 0..4
             userDoc.put("active", false);                  // start: false
@@ -60,6 +63,19 @@ public class UserRepository {
             userDoc.put("badges", u.badges);               // 0
             userDoc.put("qrId", u.qrId);                   // npr. uid
             userDoc.put("createdAt", FieldValue.serverTimestamp()); // za 24h prozor
+=======
+            userDoc.put("username", u.username);
+            userDoc.put("avatarIndex", u.avatarIndex);
+            userDoc.put("active", false);
+            userDoc.put("level", u.level);
+            userDoc.put("title", u.title);
+            userDoc.put("xp", u.xp);
+            userDoc.put("pp", u.pp);
+            userDoc.put("coins", u.coins);
+            userDoc.put("badges", u.badges);
+            userDoc.put("qrId", u.qrId);
+            userDoc.put("createdAt", FieldValue.serverTimestamp());
+>>>>>>> Stashed changes
             tr.set(userRef, userDoc);
 
             return null;
@@ -78,7 +94,8 @@ public class UserRepository {
                 : null;
     }
 
-    // FRIENDS
+    // --- FRIENDS METODE ---
+
     public Task<DocumentSnapshot> searchUserByUsername(String username) {
         return db.collection("usernames").document(username).get()
                 .continueWithTask(task -> {
@@ -91,7 +108,6 @@ public class UserRepository {
     }
 
     public Task<Void> addFriend(String myUid, User friend) {
-        // Dodajemo prijatelja u moju listu
         DocumentReference myFriendRef = db.collection("users").document(myUid)
                 .collection("friends").document(friend.uid);
 
@@ -107,7 +123,8 @@ public class UserRepository {
         return db.collection("users").document(myUid).collection("friends");
     }
 
-    // ALLIANCE
+    // --- ALLIANCE METODE ---
+
     public Task<Void> createAlliance(String name, User leader) {
         DocumentReference newAllianceRef = db.collection("alliances").document();
         String allianceId = newAllianceRef.getId();
@@ -122,6 +139,7 @@ public class UserRepository {
     }
 
     public Task<Void> inviteToAlliance(String targetUid, Alliance alliance, String myName) {
+        // Koristimo alliance.id kao ID dokumenta pozivnice da bismo izbegli duplikate
         DocumentReference inviteRef = db.collection("users").document(targetUid)
                 .collection("alliance_invites").document(alliance.id);
 
@@ -130,22 +148,56 @@ public class UserRepository {
     }
 
     public Task<Void> respondToInvite(String myUid, AllianceInvite invite, boolean accept) {
-        WriteBatch batch = db.batch();
-        DocumentReference inviteRef = db.collection("users").document(myUid)
-                .collection("alliance_invites").document(invite.allianceId);
+        return db.runTransaction(transaction -> {
+            DocumentReference inviteRef = db.collection("users").document(myUid)
+                    .collection("alliance_invites").document(invite.id); // Koristi ID dokumenta!
 
-        batch.delete(inviteRef);
-
-        if (accept) {
-            DocumentReference allianceRef = db.collection("alliances").document(invite.allianceId);
             DocumentReference userRef = db.collection("users").document(myUid);
 
-            batch.update(allianceRef, "members", FieldValue.arrayUnion(myUid));
+            // --- 1. ČITANJE (MORA BITI PRVO!) ---
+            // Čitamo korisnika pre nego što bilo šta obrišemo ili upišemo
+            DocumentSnapshot userSnap = transaction.get(userRef);
 
-            batch.update(userRef, "allianceId", invite.allianceId);
-        }
+            // --- 2. PISANJE (TEK KAD SU SVA ČITANJA GOTOVA) ---
 
-        return batch.commit();
+            // Sada možemo da obrišemo pozivnicu
+            transaction.delete(inviteRef);
+
+            if (accept) {
+                // Logika za prelazak u novi savez
+                String currentAllianceId = userSnap.getString("allianceId");
+
+                // Ako je već u nekom savezu, izbaci ga iz starog
+                if (currentAllianceId != null && !currentAllianceId.isEmpty()) {
+                    DocumentReference oldAllianceRef = db.collection("alliances").document(currentAllianceId);
+                    transaction.update(oldAllianceRef, "members", FieldValue.arrayRemove(myUid));
+                }
+
+                // Ubaci ga u novi savez
+                DocumentReference newAllianceRef = db.collection("alliances").document(invite.allianceId);
+                transaction.update(newAllianceRef, "members", FieldValue.arrayUnion(myUid));
+
+                // Ažuriraj korisnika
+                transaction.update(userRef, "allianceId", invite.allianceId);
+            }
+
+            return null;
+        });
+    }
+
+    public Task<Void> disbandAlliance(String allianceId) {
+        return db.collection("users").whereEqualTo("allianceId", allianceId).get()
+                .continueWithTask(task -> {
+                    WriteBatch batch = db.batch();
+
+                    batch.delete(db.collection("alliances").document(allianceId));
+
+                    for (DocumentSnapshot doc : task.getResult()) {
+                        batch.update(doc.getReference(), "allianceId", null);
+                    }
+
+                    return batch.commit();
+                });
     }
 
     public Task<Alliance> getAlliance(String allianceId) {
@@ -156,5 +208,4 @@ public class UserRepository {
     public Query getInvitesQuery(String myUid) {
         return db.collection("users").document(myUid).collection("alliance_invites");
     }
-
 }
