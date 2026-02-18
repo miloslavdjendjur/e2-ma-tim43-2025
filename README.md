@@ -39,7 +39,6 @@ Sadrži domenske entitete koji predstavljaju osnovne podatke sistema:
 - Equipment (Weapon, Clothes, Potion)
 - Alliance
 - ChatMessage
-- TitleBook
 
 Model klase predstavljaju strukturu podataka koji se čuvaju u Cloud Firestore bazi.
 
@@ -55,25 +54,21 @@ Repository sloj je zadužen za komunikaciju sa Firebase backend-om. Implementira
 Ovaj sloj odvaja izvor podataka od poslovne logike i UI komponenata.
 
 ### ⚙️ Service sloj
-Service sloj implementira poslovnu logiku aplikacije. Ključne servisne klase:
+Service sloj implementira poslovnu logiku aplikacije i pozadinske procese. Ključne komponente:
+- **AllianceService** (Background Service za sinhronizaciju)
+- **NotificationReceiver** (Obrada notifikacija)
 - TaskService
 - BossService
 - LevelingService
-- EquipmentService
-- AllianceService
-- SpecialMissionService
 
 Ovaj sloj obrađuje podatke dobijene iz repository sloja i priprema ih za prikaz u UI sloju.
 
 ### 🖥️ UI sloj
-Korisnički interfejs je implementiran korišćenjem Activity + Fragment pristupa. Glavne funkcionalne celine:
-- Autentifikacija (Login, Register, VerifyMail)
-- Upravljanje zadacima
-- Boss borba (BossPrepActivity, BossFightActivity, FightResultActivity)
-- Oprema i prodavnica
-- Savez i chat
-- Profil korisnika
-- Statistika i sistem nivoa
+Korisnički interfejs je implementiran korišćenjem Activity + Fragment pristupa uz Material Design. Glavne funkcionalne celine:
+- **Auth:** Login, Register, VerifyMail
+- **Profile:** ChangePassword, LevelProgress
+- **Boss:** BossPrepActivity, BossFightActivity, FightResultActivity
+- **Equipment:** EquipmentStoreActivity, MyEquipmentActivity
 
 Navigacija je realizovana pomoću Android Navigation Component-a.
 
@@ -92,7 +87,7 @@ Autentifikacija je realizovana korišćenjem Firebase Authentication servisa.
 ### 📋 Upravljanje zadacima
 Korisnik može:
 - Kreirati jednokratne i ponavljajuće zadatke
-- Dodeliti kategoriju zadatku
+- Dodeliti kategoriju zadatku (uz odabir boja pomoću AmbilWarna)
 - Pregledati i filtrirati zadatke
 - Označiti zadatak kao završen
 
@@ -101,16 +96,14 @@ Nakon završetka zadatka korisnik dobija XP poene i Novčiće. Podaci o zadacima
 ### 📈 Sistem napredovanja
 Aplikacija implementira XP sistem i sistem nivoa. Karakteristike:
 - Prikupljanje XP poena
-- Automatsko povećanje nivoa
-- Prikaz napretka korisnika
+- Automatsko povećanje nivoa (prikazano kroz LevelProgressActivity)
+- Prikaz napretka korisnika i statistike (MPAndroidChart)
 - Titule koje se otključavaju kroz napredovanje
-
-Logika je implementirana u okviru LevelingService klase.
 
 ### ⚔️ Boss sistem
 Boss sistem predstavlja centralni gamifikacioni element aplikacije. Borba se sastoji od:
 - Pripreme borbe (izbor opreme)
-- Izvršavanja borbe
+- Izvršavanja borbe (korišćenje senzora i vibracije)
 - Prikaza rezultata
 
 Težina Boss protivnika skalira u skladu sa nivoom korisnika.
@@ -127,9 +120,9 @@ Oprema utiče na performanse u borbi.
 ### 🛡️ Savez i socijalne funkcionalnosti
 Aplikacija omogućava:
 - Kreiranje saveza
-- Dodavanje članova
+- Dodavanje članova (QR skener - ZXing)
 - Slanje poruka unutar saveza
-- Učestvovanje u specijalnim misijama
+- Pozadinska sinhronizacija podataka
 
 Podaci o savezima i komunikaciji čuvaju se u Firestore bazi.
 
@@ -137,12 +130,13 @@ Podaci o savezima i komunikaciji čuvaju se u Firestore bazi.
 
 ## ⚙️ Tehnologije
 
-Tehnologije korišćene u projektu (verifikovano iz konfiguracije projekta):
+Tehnologije korišćene u projektu (verifikovano iz `build.gradle`):
 
-- **Platforma:** Android (minSdk 30, targetSdk 34, compileSdk 34)
-- **Programski jezik:** Java (1.8)
-- **Backend:** Firebase Authentication, Cloud Firestore, Firebase Cloud Messaging, Firebase Storage
-- **UI:** AndroidX biblioteke, Material Components, Navigation Component
+- **Platforma:** Android (minSdk 30, targetSdk 36)
+- **Programski jezik:** Java 11
+- **Backend:** Firebase Authentication, Cloud Firestore, Firebase Cloud Messaging
+- **UI & Grafika:** Material Components, Lottie Animations (v6.4.1), MPAndroidChart (v3.1.0)
+- **Ostalo:** ZXing Android Embedded (QR), AmbilWarna (Color Picker)
 
 ---
 
@@ -150,9 +144,9 @@ Tehnologije korišćene u projektu (verifikovano iz konfiguracije projekta):
 
 1. Klonirati repozitorijum.
 2. Dodati `google-services.json` fajl u `app/` direktorijum.
-3. Konfigurisati Firebase projekat (Authentication, Firestore, Messaging, Storage).
+3. Konfigurisati Firebase projekat (Authentication, Firestore, Messaging).
 4. Otvoriti projekat u Android Studio okruženju.
-5. Pokrenuti aplikaciju na emulatoru ili fizičkom Android uređaju.
+5. Pokrenuti aplikaciju na emulatoru ili fizičkom Android uređaju (preporučeno zbog senzora i vibracije).
 
 ---
 
