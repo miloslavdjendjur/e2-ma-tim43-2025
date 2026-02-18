@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Moji Prijatelji"
+        android:text="My friends"
         android:textSize="24sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
@@ -24,7 +24,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Traži korisnika"
+            android:text="Add friend"
             android:layout_marginEnd="8dp"/>
 
         <Button
@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:backgroundTint="#FF9800"
-            android:text="Skeniraj QR"/>
+            android:text="Scan QR code"/>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

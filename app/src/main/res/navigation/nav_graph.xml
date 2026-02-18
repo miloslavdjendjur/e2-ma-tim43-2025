@@ -21,11 +21,6 @@
         android:label="Shop" />
 
     <fragment
-        android:id="@+id/nav_equipment"
-        android:name="com.example.ui.equipment.EquipmentFragment"
-        android:label="Equipment" />
-
-    <fragment
         android:id="@+id/nav_profile"
         android:name="com.example.ui.profile.ProfileFragment"
         android:label="Profile" />

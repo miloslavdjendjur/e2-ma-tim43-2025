@@ -8,7 +8,7 @@
         android:layout_width="match_parent" android:layout_height="wrap_content"/>
     <Button
         android:id="@+id/btnResend"
-        android:text="Pošalji ponovo"
+        android:text="Send email again"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="12dp"/>
 </LinearLayout>

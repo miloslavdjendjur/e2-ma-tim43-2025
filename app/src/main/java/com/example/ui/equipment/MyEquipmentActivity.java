@@ -36,44 +36,44 @@ public class MyEquipmentActivity extends AppCompatActivity {
         Button btnUsePerm10 = findViewById(R.id.btnUsePerm10);
 
         btnUseP20.setOnClickListener(v -> actions.activateOneShotPotion(PotionType.ONE_SHOT_PP20)
-                .addOnSuccessListener(x -> toast("Napitak +20% spreman (potrošiće se u prvoj sledećoj borbi)."))
+                .addOnSuccessListener(x -> toast("Potion +20% power ready (will be consumed in next fight)."))
                 .addOnFailureListener(e -> toast(e.getMessage())));
 
         btnUseP40.setOnClickListener(v -> actions.activateOneShotPotion(PotionType.ONE_SHOT_PP40)
-                .addOnSuccessListener(x -> toast("Napitak +40% spreman."))
+                .addOnSuccessListener(x -> toast("Potion +40% power ready (will be consumed in next fight).."))
                 .addOnFailureListener(e -> toast(e.getMessage())));
 
         btnEquipGloves.setOnClickListener(v -> actions.equipClothes(ClothesType.GLOVES)
-                .addOnSuccessListener(x -> toast("Rukavice aktivirane (+10% PP, 2 borbe)."))
+                .addOnSuccessListener(x -> toast("Gloves activated (+10% power, active for 2 fights)."))
                 .addOnFailureListener(e -> toast(e.getMessage())));
 
         btnEquipShield.setOnClickListener(v -> actions.equipClothes(ClothesType.SHIELD)
-                .addOnSuccessListener(x -> toast("Štit aktiviran (+10% hit, 2 borbe)."))
+                .addOnSuccessListener(x -> toast("Shield activated (+10% hit, active for 2 fights))."))
                 .addOnFailureListener(e -> toast(e.getMessage())));
 
         btnEquipBoots.setOnClickListener(v -> actions.equipClothes(ClothesType.BOOTS)
-                .addOnSuccessListener(x -> toast("Čizme aktivirane (+40% extra try, 2 borbe)."))
+                .addOnSuccessListener(x -> toast("Boots activated (+40% extra try, active for 2 fights)."))
                 .addOnFailureListener(e -> toast(e.getMessage())));
 
         btnStats.setOnClickListener(v -> repo.getUser().addOnSuccessListener(ds ->
                 service.computeEffectiveStats(ds)
-                        .addOnSuccessListener(s -> toast("PP=" + s.effectivePp + ", hit+=" + s.hitBonusPct + "%, extra+=" + s.extraTryPct + "%"))
+                        .addOnSuccessListener(s -> toast("Power: " + s.effectivePp + ", hit: " + s.hitBonusPct + "%, extra hit;" + s.extraTryPct + "%"))
                         .addOnFailureListener(e -> toast(e.getMessage()))
         ));
 
         btnAfterBattle.setOnClickListener(v ->
                 actions.afterBattleConsume()
-                        .addOnSuccessListener(x -> toast("Potrošeno: jednokratni napici i -1 uses za odeću."))
+                        .addOnSuccessListener(x -> toast("Consumed: one time potions & -1 use for clothing items."))
                         .addOnFailureListener(e -> toast(e.getMessage()))
         );
 
         btnUsePerm5.setOnClickListener(v -> actions.activatePermanentPotion(PotionType.PERM_PP5)
-                .addOnSuccessListener(x -> toast("Trajno povećan PP za 5%!"))
-                .addOnFailureListener(e -> toast("Greška: " + e.getMessage())));
+                .addOnSuccessListener(x -> toast("Power increased by 5%"))
+                .addOnFailureListener(e -> toast("Error: " + e.getMessage())));
 
         btnUsePerm10.setOnClickListener(v -> actions.activatePermanentPotion(PotionType.PERM_PP10)
-                .addOnSuccessListener(x -> toast("Trajno povećan PP za 10%!"))
-                .addOnFailureListener(e -> toast("Greška: " + e.getMessage())));
+                .addOnSuccessListener(x -> toast("Power increased by 10%"))
+                .addOnFailureListener(e -> toast("Error: " + e.getMessage())));
     }
 
 

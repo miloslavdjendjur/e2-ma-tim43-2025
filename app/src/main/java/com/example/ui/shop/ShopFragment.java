@@ -138,41 +138,41 @@ public class ShopFragment extends Fragment {
     private void loadShopItems() {
         List<ShopItem> list = new ArrayList<>();
 
-        list.add(ShopItem.createForShop("Napitak (+20%)", "Jednokratno +20% PP",
+        list.add(ShopItem.createForShop("Potion (+20%)", "One time use +20% Power",
                 EquipmentService.pricePotionOneShot20(currentLevel), PotionType.ONE_SHOT_PP20, "POTION",
                 getIconForType("POTION", PotionType.ONE_SHOT_PP20)));
 
-        list.add(ShopItem.createForShop("Napitak (+40%)", "Jednokratno +40% PP",
+        list.add(ShopItem.createForShop("Potion (+40%)", "One time use +40% Power",
                 EquipmentService.pricePotionOneShot40(currentLevel), PotionType.ONE_SHOT_PP40, "POTION",
                 getIconForType("POTION", PotionType.ONE_SHOT_PP40)));
 
-        list.add(ShopItem.createForShop("Eliksir (+5%)", "Trajno +5% PP",
+        list.add(ShopItem.createForShop("Elixir (+5%)", " +5% Power",
                 EquipmentService.pricePotionPerm5(currentLevel), PotionType.PERM_PP5, "POTION",
                 getIconForType("POTION", PotionType.PERM_PP5)));
 
-        list.add(ShopItem.createForShop("Eliksir (+10%)", "Trajno +10% PP",
+        list.add(ShopItem.createForShop("Elixir (+10%)", " +10% Power",
                 EquipmentService.pricePotionPerm10(currentLevel), PotionType.PERM_PP10, "POTION",
                 getIconForType("POTION", PotionType.PERM_PP10)));
 
-        list.add(ShopItem.createForShop("Rukavice", "+10% PP (2 borbe)",
+        list.add(ShopItem.createForShop("Gloves", "+10% Power (active for 2 fights)",
                 EquipmentService.priceGloves(currentLevel), ClothesType.GLOVES, "CLOTHES",
                 getIconForType("CLOTHES", ClothesType.GLOVES)));
 
-        list.add(ShopItem.createForShop("Štit", "+10% Hit Chance",
+        list.add(ShopItem.createForShop("Shield", "+10% Hit Chance",
                 EquipmentService.priceShield(currentLevel), ClothesType.SHIELD, "CLOTHES",
                 getIconForType("CLOTHES", ClothesType.SHIELD)));
 
-        list.add(ShopItem.createForShop("Čizme", "+40% Extra Napad",
+        list.add(ShopItem.createForShop("Boots", "+40% Extra attack",
                 EquipmentService.priceBoots(currentLevel), ClothesType.BOOTS, "CLOTHES",
                 getIconForType("CLOTHES", ClothesType.BOOTS)));
 
         if (hasSword) {
-            list.add(ShopItem.createForShop("Oštri mač", "Upgrade mača (+Bonus)",
+            list.add(ShopItem.createForShop("Sword Sharpness", "Sword sharpness increased (+Bonus)",
                     EquipmentService.priceWeaponUpgrade(currentLevel), WeaponType.SWORD, "WEAPON",
                     getIconForType("WEAPON", WeaponType.SWORD)));
         }
         if (hasBow) {
-            list.add(ShopItem.createForShop("Luk i Strela", "Upgrade luka (+Bonus)",
+            list.add(ShopItem.createForShop("Bow & arrows", "Bow upgrade (+Bonus)",
                     EquipmentService.priceWeaponUpgrade(currentLevel), WeaponType.BOW, "WEAPON",
                     getIconForType("WEAPON", WeaponType.BOW)));
         }
@@ -191,7 +191,7 @@ public class ShopFragment extends Fragment {
 
                 try {
                     PotionType pt = PotionType.valueOf(typeStr);
-                    String desc = pt.name().contains("PERM") ? "Trajni bonus" : "Za sledeću borbu";
+                    String desc = pt.name().contains("PERM") ? "Permanent bonus" : "For next fight";
 
                     if (count > 0 || isPending) {
                         list.add(ShopItem.createForInventory(formatPotionName(pt), desc, count, pt, "POTION",
@@ -209,7 +209,7 @@ public class ShopFragment extends Fragment {
                     try {
                         ClothesType ct = ClothesType.valueOf(typeStr);
                         if (count > 0 || active) {
-                            list.add(ShopItem.createForInventory(formatClothesName(ct), "Traje 2 borbe", count, ct, "CLOTHES",
+                            list.add(ShopItem.createForInventory(formatClothesName(ct), "Active for 2 fights", count, ct, "CLOTHES",
                                     getIconForType("CLOTHES", ct), active));
                         }
                     } catch (Exception e) {}
@@ -220,7 +220,7 @@ public class ShopFragment extends Fragment {
                         String typeStr = doc.getString("type");
                         int level = doc.getLong("level") != null ? doc.getLong("level").intValue() : 0;
                         if (level > 0) {
-                            String name = typeStr.equals("SWORD") ? "Mač" : "Luk i Strela";
+                            String name = typeStr.equals("SWORD") ? "Sword" : "Bow & arrows";
                             WeaponType wt = typeStr.equals("SWORD") ? WeaponType.SWORD : WeaponType.BOW;
                             list.add(ShopItem.createForInventory(name, "Level: " + level, 1, null, "WEAPON",
                                     getIconForType("WEAPON", wt), false));
@@ -234,19 +234,19 @@ public class ShopFragment extends Fragment {
 
     private String formatPotionName(PotionType pt) {
         switch (pt) {
-            case ONE_SHOT_PP20: return "Napitak (+20%)";
-            case ONE_SHOT_PP40: return "Napitak (+40%)";
-            case PERM_PP5: return "Eliksir (+5%)";
-            case PERM_PP10: return "Eliksir (+10%)";
+            case ONE_SHOT_PP20: return "Potion (+20%)";
+            case ONE_SHOT_PP40: return "Potion (+40%)";
+            case PERM_PP5: return "Elixir (+5%)";
+            case PERM_PP10: return "Elixir (+10%)";
             default: return pt.name();
         }
     }
 
     private String formatClothesName(ClothesType ct) {
         switch (ct) {
-            case GLOVES: return "Rukavice";
-            case SHIELD: return "Štit";
-            case BOOTS: return "Čizme";
+            case GLOVES: return "Gloves";
+            case SHIELD: return "Shield";
+            case BOOTS: return "Boots";
             default: return ct.name();
         }
     }
@@ -255,32 +255,32 @@ public class ShopFragment extends Fragment {
         if (item.isShopItem) {
             if ("POTION".equals(item.typeCategory)) {
                 actions.buyPotion((PotionType) item.typeEnum, currentLevel)
-                        .addOnSuccessListener(v -> { toast("Uspešna kupovina!"); loadUserDataAndRefresh(0); })
-                        .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+                        .addOnSuccessListener(v -> { toast("Shopping success!"); loadUserDataAndRefresh(0); })
+                        .addOnFailureListener(e -> toast("Error: " + e.getMessage()));
             } else if ("CLOTHES".equals(item.typeCategory)) {
                 actions.buyClothes((ClothesType) item.typeEnum, currentLevel)
-                        .addOnSuccessListener(v -> { toast("Uspešna kupovina!"); loadUserDataAndRefresh(0); })
-                        .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+                        .addOnSuccessListener(v -> { toast("Shopping success!"); loadUserDataAndRefresh(0); })
+                        .addOnFailureListener(e -> toast("Error: " + e.getMessage()));
             } else if ("WEAPON".equals(item.typeCategory)) {
                 actions.upgradeWeapon((WeaponType) item.typeEnum, currentLevel)
-                        .addOnSuccessListener(v -> { toast("Uspešan upgrade!"); loadUserDataAndRefresh(0); })
-                        .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+                        .addOnSuccessListener(v -> { toast("Shopping success!"); loadUserDataAndRefresh(0); })
+                        .addOnFailureListener(e -> toast("Error: " + e.getMessage()));
             }
         } else {
             if ("POTION".equals(item.typeCategory)) {
                 PotionType pt = (PotionType) item.typeEnum;
                 if (pt == PotionType.PERM_PP5 || pt == PotionType.PERM_PP10) {
                     actions.activatePermanentPotion(pt)
-                            .addOnSuccessListener(v -> { toast("Aktivirano!"); loadInventoryItems(); })
+                            .addOnSuccessListener(v -> { toast("Activated!"); loadInventoryItems(); })
                             .addOnFailureListener(e -> toast(e.getMessage()));
                 } else {
                     actions.activateOneShotPotion(pt)
-                            .addOnSuccessListener(v -> { toast("Spremno za borbu!"); loadInventoryItems(); })
+                            .addOnSuccessListener(v -> { toast("Ready for combat!"); loadInventoryItems(); })
                             .addOnFailureListener(e -> toast(e.getMessage()));
                 }
             } else if ("CLOTHES".equals(item.typeCategory)) {
                 actions.equipClothes((ClothesType) item.typeEnum)
-                        .addOnSuccessListener(v -> { toast("Opremljeno!"); loadInventoryItems(); })
+                        .addOnSuccessListener(v -> { toast("Activated!"); loadInventoryItems(); })
                         .addOnFailureListener(e -> toast(e.getMessage()));
             }
         }

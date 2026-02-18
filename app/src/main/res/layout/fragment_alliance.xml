@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Nemaš savez"
+            android:text="No alliance"
             android:textSize="22sp"
             android:textStyle="bold"
             android:layout_gravity="center_horizontal"/>
@@ -23,13 +23,13 @@
             android:id="@+id/btnCreateAlliance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Kreiraj novi savez"
+            android:text="Create a new alliance"
             android:layout_marginTop="16dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pozivnice za savez:"
+            android:text="Invites sent to: "
             android:layout_marginTop="24dp"
             android:textStyle="bold"/>
 
@@ -53,7 +53,7 @@
             android:id="@+id/tvAllianceName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ime Saveza"
+            android:text="Alliance name"
             android:textSize="28sp"
             android:textStyle="bold"
             android:gravity="center"
@@ -87,7 +87,7 @@
             android:id="@+id/btnDisband"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ukini savez"
+            android:text="Delete alliance"
             android:backgroundTint="#FF0000"
             android:textColor="#FFFFFF"
             android:visibility="gone"

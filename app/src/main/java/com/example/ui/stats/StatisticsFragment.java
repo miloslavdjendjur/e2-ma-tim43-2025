@@ -171,10 +171,10 @@ public class StatisticsFragment extends Fragment {
         if (time == null) return;
 
         String catId = task.getCategoryId();
-        String catName = "Ostalo"; // Default
+        String catName = "Other"; // Default
 
         if (catId != null) {
-            catName = categoryNameMap.getOrDefault(catId, "Ostalo");
+            catName = categoryNameMap.getOrDefault(catId, "Other");
         }
 
         catCounts.put(catName, catCounts.getOrDefault(catName, 0) + 1);
@@ -195,9 +195,9 @@ public class StatisticsFragment extends Fragment {
 
     private void setupPieChart(int done, int canceled, int active) {
         List<PieEntry> entries = new ArrayList<>();
-        entries.add(new PieEntry(done, "Urađeno"));
-        entries.add(new PieEntry(active, "Aktivno/Neurađeno"));
-        entries.add(new PieEntry(canceled, "Otkazano"));
+        entries.add(new PieEntry(done, "Done"));
+        entries.add(new PieEntry(active, "Active/Paused"));
+        entries.add(new PieEntry(canceled, "Canceled"));
 
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(new int[]{Color.GREEN, Color.GRAY, Color.RED});
@@ -207,7 +207,7 @@ public class StatisticsFragment extends Fragment {
         PieData data = new PieData(dataSet);
         pieChartStatus.setData(data);
         pieChartStatus.getDescription().setEnabled(false);
-        pieChartStatus.setCenterText("Ukupno: " + (done + canceled + active));
+        pieChartStatus.setCenterText("Total: " + (done + canceled + active));
         pieChartStatus.animateY(1000);
         pieChartStatus.invalidate();
     }
@@ -223,7 +223,7 @@ public class StatisticsFragment extends Fragment {
             index++;
         }
 
-        BarDataSet dataSet = new BarDataSet(entries, "Zadaci");
+        BarDataSet dataSet = new BarDataSet(entries, "Tasks");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
         dataSet.setValueTextSize(12f);
 
@@ -285,7 +285,7 @@ public class StatisticsFragment extends Fragment {
             labels.add(day.format(DateTimeFormatter.ofPattern("dd.MM")));
         }
 
-        LineDataSet dataSet = new LineDataSet(entries, "Prosečna težina (XP)");
+        LineDataSet dataSet = new LineDataSet(entries, "Average difficulty (XP)");
         dataSet.setColor(Color.MAGENTA);
         dataSet.setCircleColor(Color.MAGENTA);
         dataSet.setLineWidth(2f);

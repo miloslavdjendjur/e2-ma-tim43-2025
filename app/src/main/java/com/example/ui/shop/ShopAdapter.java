@@ -49,16 +49,16 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ViewHolder> {
         holder.ivIcon.setImageResource(item.imageResId);
 
         if (item.isShopItem) {
-            holder.tvInfo.setText("Cena: " + item.price + " 💰");
-            holder.btnAction.setText("Kupi");
+            holder.tvInfo.setText("Price: " + item.price + " 💰");
+            holder.btnAction.setText("Buy");
             holder.btnAction.setEnabled(true);
             holder.btnAction.setAlpha(1.0f);
-            holder.btnAction.setBackgroundColor(Color.parseColor("#4CAF50"));
+            holder.btnAction.setBackgroundColor(Color.parseColor("#00A19C"));
         } else {
-            holder.tvInfo.setText("Poseduješ: " + item.count);
+            holder.tvInfo.setText("Owned: " + item.count);
 
             if ("WEAPON".equals(item.typeCategory)) {
-                holder.btnAction.setText("Trajno");
+                holder.btnAction.setText("Permanent");
                 holder.btnAction.setEnabled(false);
                 holder.btnAction.setAlpha(0.6f);
                 holder.btnAction.setBackgroundColor(Color.GRAY);
@@ -70,16 +70,16 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ViewHolder> {
                 }
 
                 if (isOneShotPotion && item.isActive) {
-                    holder.btnAction.setText("Spremno");
+                    holder.btnAction.setText("Ready");
                     holder.btnAction.setEnabled(false);
                     holder.btnAction.setAlpha(0.6f);
                     holder.btnAction.setBackgroundColor(Color.GRAY);
                 } else {
-                    holder.btnAction.setText("Aktiviraj");
+                    holder.btnAction.setText("Activated");
                     if (item.count > 0) {
                         holder.btnAction.setEnabled(true);
                         holder.btnAction.setAlpha(1.0f);
-                        holder.btnAction.setBackgroundColor(Color.parseColor("#2196F3"));
+                        holder.btnAction.setBackgroundColor(Color.parseColor("#00A19C"));
                     } else {
                         holder.btnAction.setEnabled(false);
                         holder.btnAction.setAlpha(0.5f);

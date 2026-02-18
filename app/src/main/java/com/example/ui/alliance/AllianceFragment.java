@@ -103,7 +103,7 @@ public class AllianceFragment extends Fragment {
                     Navigation.findNavController(v).navigate(R.id.allianceChatFragment, bundle);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Toast.makeText(getContext(), "Greška u navigaciji", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Navigation error", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -116,7 +116,7 @@ public class AllianceFragment extends Fragment {
             specialMissionService.startMissionLeaderOnly(allianceId)
                     .addOnSuccessListener(x -> {
                         // listener će sam da prebaci dugmad na "view"
-                        Toast.makeText(getContext(), "Specijalna misija je pokrenuta.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Special mission started.", Toast.LENGTH_SHORT).show();
 
                         // ako želiš odmah da otvoriš ekran:
                         Bundle b = new Bundle();
@@ -213,7 +213,7 @@ public class AllianceFragment extends Fragment {
                 btnDisband.setOnClickListener(v -> {
                     // 1. Sigurnosna provera: Ne može se ukinuti ako traje misija
                     if (missionActive) {
-                        Toast.makeText(getContext(), "Ne možete ukinuti savez dok traje specijalna misija!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Can't delete an alliance while special mission is ongoing.", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -223,13 +223,13 @@ public class AllianceFragment extends Fragment {
                     // 3. Poziv repozitorijuma
                     repo.disbandAlliance(allianceId)
                             .addOnSuccessListener(x -> {
-                                Toast.makeText(getContext(), "Savez je uspešno ukinut.", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), "Alliance deleted.", Toast.LENGTH_SHORT).show();
                                 // Ovo će osvežiti status korisnika i vratiti ga na ekran "Nemaš savez"
                                 checkUserStatus();
                             })
                             .addOnFailureListener(e -> {
                                 btnDisband.setEnabled(true); // Vrati dugme ako pukne
-                                Toast.makeText(getContext(), "Greška pri brisanju: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Toast.makeText(getContext(), "Error while deleting: " + e.getMessage(), Toast.LENGTH_LONG).show();
                             });
                 });
 
@@ -249,7 +249,7 @@ public class AllianceFragment extends Fragment {
             attachMissionListener(allianceId);
 
         }).addOnFailureListener(e ->
-                Toast.makeText(getContext(), "Greška pri učitavanju saveza: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                Toast.makeText(getContext(), "Error while loading: " + e.getMessage(), Toast.LENGTH_SHORT).show()
         );
     }
 
@@ -321,29 +321,29 @@ public class AllianceFragment extends Fragment {
 
     private void showCreateDialog() {
         final EditText input = new EditText(getContext());
-        input.setHint("Naziv saveza");
+        input.setHint("Alliance name");
 
         new AlertDialog.Builder(requireContext())
-                .setTitle("Osnuj savez")
+                .setTitle("Create alliance")
                 .setView(input)
-                .setPositiveButton("Kreiraj", (d, w) -> {
+                .setPositiveButton("Create", (d, w) -> {
                     String name = input.getText().toString();
                     if (!name.isEmpty()) {
                         repo.createAlliance(name, currentUser)
                                 .addOnSuccessListener(v -> {
-                                    Toast.makeText(getContext(), "Savez kreiran!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(getContext(), "Alliance created", Toast.LENGTH_SHORT).show();
                                     checkUserStatus(); // Osveži UI
                                 });
                     }
                 })
-                .setNegativeButton("Otkaži", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
     public void acceptInvite(AllianceInvite invite) {
         repo.respondToInvite(myUid, invite, true)
                 .addOnSuccessListener(v -> {
-                    Toast.makeText(getContext(), "Dobrodošao u savez!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Welcome to the alliance!", Toast.LENGTH_SHORT).show();
                     checkUserStatus(); // Osveži UI
                 });
     }

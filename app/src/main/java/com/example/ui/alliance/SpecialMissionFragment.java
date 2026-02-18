@@ -75,7 +75,7 @@ public class SpecialMissionFragment extends Fragment {
         rvContrib.setAdapter(adapter);
 
         if (allianceId == null || allianceId.isEmpty()) {
-            tvStatus.setText("Nema allianceId.");
+            tvStatus.setText("No alliance ID.");
             return;
         }
 
@@ -104,15 +104,15 @@ public class SpecialMissionFragment extends Fragment {
     private void listenMission() {
         missionRef().addSnapshotListener((snap, err) -> {
             if (err != null) {
-                tvStatus.setText("Greška: " + err.getMessage());
+                tvStatus.setText("Error: " + err.getMessage());
                 return;
             }
             if (snap == null || !snap.exists()) {
-                tvStatus.setText("Specijalna misija nije pokrenuta.");
+                tvStatus.setText("Special mission not started.");
                 tvBossHp.setText("Boss HP: -- / --");
                 pbBossHp.setProgress(0);
                 cancelTimer();
-                tvCountdown.setText("Preostalo: --:--:--");
+                tvCountdown.setText("Time left: --:--:--");
                 return;
             }
 
@@ -136,17 +136,17 @@ public class SpecialMissionFragment extends Fragment {
             pbBossHp.setProgress(Math.max(0, Math.min(100, pct)));
 
             if (defeated != null && defeated) {
-                tvStatus.setText("Boss je pobeđen ✅");
+                tvStatus.setText("The boss has been defeated.");
             } else if (active != null && active) {
-                tvStatus.setText("Misija je aktivna.");
+                tvStatus.setText("Mission is active.");
             } else {
-                tvStatus.setText("Misija nije aktivna.");
+                tvStatus.setText("Mission inactive");
             }
 
             if (endAt != null) startOrUpdateTimer(endAt.toDate());
             else {
                 cancelTimer();
-                tvCountdown.setText("Preostalo: --:--:--");
+                tvCountdown.setText("Time left: --:--:--");
             }
         });
     }
@@ -155,7 +155,7 @@ public class SpecialMissionFragment extends Fragment {
         missionRef().collection("progress")
                 .addSnapshotListener((qs, err) -> {
                     if (err != null) {
-                        tvStatus.setText("Greška progress: " + err.getMessage());
+                        tvStatus.setText("Error (progress): " + err.getMessage());
                         return;
                     }
                     if (qs == null) return;
@@ -185,7 +185,6 @@ public class SpecialMissionFragment extends Fragment {
                             if (snap != null && snap.exists()) {
                                 User u = snap.toObject(User.class);
                                 if (u != null) {
-                                    // koristi šta već imate: username/displayName
                                     if (u.username != null && !u.username.isEmpty()) name = u.username;
                                 }
                             }

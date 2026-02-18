@@ -127,7 +127,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setupBossButton(User user) {
-        // Boss dugme otključaj tek od level 3 (kako si ti želeo ranije)
+        // Boss dugme otključaj tek od level 2
         if (user == null || user.level < 2) {
             btnBossFight.setVisibility(View.GONE);
             return;

@@ -42,39 +42,39 @@ public class EquipmentStoreActivity extends AppCompatActivity {
             int level = ds.getLong("level") != null ? ds.getLong("level").intValue() : 1;
 
             btnBuyP20.setOnClickListener(v -> actions.buyPotion(PotionType.ONE_SHOT_PP20, level)
-                    .addOnSuccessListener(x -> toast("Kupljen napitak +20%"))
+                    .addOnSuccessListener(x -> toast("Potion acquired +20% Power"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnBuyP40.setOnClickListener(v -> actions.buyPotion(PotionType.ONE_SHOT_PP40, level)
-                    .addOnSuccessListener(x -> toast("Kupljen napitak +40%"))
+                    .addOnSuccessListener(x -> toast("Potion acquired +40% Power"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnBuyPerm5.setOnClickListener(v -> actions.buyPotion(PotionType.PERM_PP5, level)
-                    .addOnSuccessListener(x -> toast("Trajno +5% PP primenjeno"))
+                    .addOnSuccessListener(x -> toast("+5% Permanent power applied"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnBuyPerm10.setOnClickListener(v -> actions.buyPotion(PotionType.PERM_PP10, level)
-                    .addOnSuccessListener(x -> toast("Trajno +10% PP primenjeno"))
+                    .addOnSuccessListener(x -> toast("+10% Permanent power applied"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnBuyGloves.setOnClickListener(v -> actions.buyClothes(ClothesType.GLOVES, level)
-                    .addOnSuccessListener(x -> toast("Kupljene rukavice"))
+                    .addOnSuccessListener(x -> toast("Gloves acquired"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnBuyShield.setOnClickListener(v -> actions.buyClothes(ClothesType.SHIELD, level)
-                    .addOnSuccessListener(x -> toast("Kupljen štit"))
+                    .addOnSuccessListener(x -> toast("Shield acquired"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnBuyBoots.setOnClickListener(v -> actions.buyClothes(ClothesType.BOOTS, level)
-                    .addOnSuccessListener(x -> toast("Kupljene čizme"))
+                    .addOnSuccessListener(x -> toast("Boots acquired"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnUpgradeSword.setOnClickListener(v -> actions.upgradeWeapon(WeaponType.SWORD, level)
-                    .addOnSuccessListener(x -> toast("Upgrade mača +prob"))
+                    .addOnSuccessListener(x -> toast("Sword upgraded +prob"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
 
             btnUpgradeBow.setOnClickListener(v -> actions.upgradeWeapon(WeaponType.BOW, level)
-                    .addOnSuccessListener(x -> toast("Upgrade luka +prob"))
+                    .addOnSuccessListener(x -> toast("Bow upgraded +prob"))
                     .addOnFailureListener(e -> toast(e.getMessage())));
         });
     }

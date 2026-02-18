@@ -77,11 +77,11 @@ public class CategoryFragment extends Fragment {
         preview.setOnClickListener(v -> openColorPicker(etColor, preview));
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle("Nova Kategorija")
+                .setTitle("New category")
                 .setView(dialogView)
-                .setNegativeButton("Odustani", (d, w) -> d.dismiss())
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
                 // stavljamo dummy, pa override da dialog ne nestane na invalid input
-                .setPositiveButton("Dodaj", null)
+                .setPositiveButton("Create", null)
                 .create();
 
         dialog.setOnShowListener(dlg -> {
@@ -90,7 +90,7 @@ public class CategoryFragment extends Fragment {
                 String color = etColor.getText().toString().trim();
 
                 if (name.isEmpty()) {
-                    Toast.makeText(requireContext(), "Naziv ne sme biti prazan.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Please enter the category name.", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -99,7 +99,7 @@ public class CategoryFragment extends Fragment {
 
                 // basic validacija HEX formata
                 if (!isValidHexColor(color)) {
-                    Toast.makeText(requireContext(), "Neispravan HEX (npr. #FF5733).", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Please enter a valid hex code (e.g. #FF5733).", Toast.LENGTH_SHORT).show();
                     return;
                 }
 

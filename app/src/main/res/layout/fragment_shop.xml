@@ -21,7 +21,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Prodavnica &amp; Oprema"
+            android:text="Shop &amp; inventory"
             android:textSize="20sp"
             android:textColor="#333333"
             android:textStyle="bold"/>
@@ -43,7 +43,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="8dp"
             android:backgroundTint="#F44336"
-            android:text="NAZAD U BORBU"
+            android:text="Back to boss fight"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -64,11 +64,11 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Kupovina" />
+            android:text="Shopping" />
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Moj Inventar" />
+            android:text="Inventory" />
     </com.google.android.material.tabs.TabLayout>
 
     <androidx.recyclerview.widget.RecyclerView

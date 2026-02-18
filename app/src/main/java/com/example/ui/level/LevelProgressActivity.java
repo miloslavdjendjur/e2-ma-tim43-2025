@@ -53,10 +53,10 @@ public class LevelProgressActivity extends AppCompatActivity {
 
         int threshold = LevelingService.getThresholdForLevel(u.level);
 
-        tvLevel.setText("Nivo " + u.level);
+        tvLevel.setText("Level " + u.level);
         tvTitle.setText(TitleBook.titleFor(u.level));
         tvXp.setText("XP: " + u.xp);
-        tvNext.setText("Sledeći prag: " + threshold);
+        tvNext.setText("Next level: " + threshold);
         tvPp.setText("PP: " + u.pp);
 
         int prog = (threshold == 0) ? 0 : (int) Math.max(0, Math.min(100, (u.xp * 100L / threshold)));

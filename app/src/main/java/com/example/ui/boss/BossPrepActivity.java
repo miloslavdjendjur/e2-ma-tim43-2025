@@ -141,7 +141,7 @@ public class BossPrepActivity extends AppCompatActivity {
                                 hitBonusPct = stats.hitBonusPct;
                                 extraTryPct = stats.extraTryPct;
 
-                                tvEffectivePp.setText("Effective PP: " + effectivePp);
+                                tvEffectivePp.setText("Power: " + effectivePp);
 
                                 if (tvRewards != null) {
                                     tvRewards.setText(potentialRewardsText(userLevel));

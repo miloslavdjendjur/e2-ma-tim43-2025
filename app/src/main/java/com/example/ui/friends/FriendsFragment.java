@@ -68,7 +68,7 @@ public class FriendsFragment extends Fragment {
         btnSearch.setOnClickListener(v -> showSearchDialog());
         btnScan.setOnClickListener(v -> {
             ScanOptions options = new ScanOptions();
-            options.setPrompt("Skeniraj QR kod prijatelja");
+            options.setPrompt("Scan QR code");
             options.setOrientationLocked(false);
             barcodeLauncher.launch(options);
         });
@@ -77,15 +77,15 @@ public class FriendsFragment extends Fragment {
     private void showSearchDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         final EditText input = new EditText(getContext());
-        input.setHint("Unesi korisničko ime");
+        input.setHint("Username");
         builder.setView(input);
-        builder.setTitle("Dodaj prijatelja");
+        builder.setTitle("Add friend");
 
-        builder.setPositiveButton("Traži", (dialog, which) -> {
+        builder.setPositiveButton("Search", (dialog, which) -> {
             String username = input.getText().toString().trim();
             searchAndAddFriend(username);
         });
-        builder.setNegativeButton("Otkaži", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
         builder.show();
     }
 
@@ -94,11 +94,11 @@ public class FriendsFragment extends Fragment {
             User friend = doc.toObject(User.class);
             if(friend != null) {
                 repo.addFriend(myUid, friend).addOnSuccessListener(v ->
-                        Toast.makeText(getContext(), "Prijatelj dodat!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(getContext(), "Friend added", Toast.LENGTH_SHORT).show()
                 );
             }
         }).addOnFailureListener(e ->
-                Toast.makeText(getContext(), "Korisnik nije pronađen.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show()
         );
     }
 
@@ -107,7 +107,7 @@ public class FriendsFragment extends Fragment {
             User friend = doc.toObject(User.class);
             if(friend != null) {
                 repo.addFriend(myUid, friend).addOnSuccessListener(v ->
-                        Toast.makeText(getContext(), "Prijatelj dodat preko QR-a!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(getContext(), "Friend added via QR code", Toast.LENGTH_SHORT).show()
                 );
             }
         });
@@ -121,15 +121,15 @@ public class FriendsFragment extends Fragment {
             Navigation.findNavController(requireView())
                     .navigate(R.id.userProfileFragment, bundle);
         } catch (Exception e) {
-            Toast.makeText(getContext(), "Navigacija nije konfigurisana", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Navigation not configured", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void showInviteDialog(User friend, String myAllianceId) {
         new AlertDialog.Builder(requireContext())
-                .setTitle("Pozovi u savez")
-                .setMessage("Da li želiš da pozoveš " + friend.username + " u svoj savez?")
-                .setPositiveButton("Pozovi", (d, w) -> {
+                .setTitle("Invite to alliance")
+                .setMessage("Are you sure you want to invite " + friend.username + " to your alliance?")
+                .setPositiveButton("Invite", (d, w) -> {
 
                     repo.getCurrentUser().addOnSuccessListener(snap -> {
                         User me = snap.toObject(User.class);
@@ -138,13 +138,13 @@ public class FriendsFragment extends Fragment {
 
                                 repo.inviteToAlliance(friend.uid, alliance, me.username)
                                         .addOnSuccessListener(v ->
-                                                Toast.makeText(getContext(), "Pozivnica poslata!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(getContext(), "Invite sent.", Toast.LENGTH_SHORT).show()
                                         );
                             });
                         }
                     });
                 })
-                .setNegativeButton("Odustani", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 

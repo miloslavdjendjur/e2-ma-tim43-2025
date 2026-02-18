@@ -36,9 +36,9 @@ public class InvitesAdapter extends RecyclerView.Adapter<InvitesAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         AllianceInvite invite = invites.get(position);
-        holder.tvName.setText("Poziv od: " + invite.inviterName + " (Savez: " + invite.allianceName + ")");
+        holder.tvName.setText("Invitation from: " + invite.inviterName + " to join the  " + invite.allianceName + " alliance");
         holder.btnAction.setVisibility(View.VISIBLE);
-        holder.btnAction.setText("Prihvati");
+        holder.btnAction.setText("Accept");
         holder.btnAction.setOnClickListener(v -> listener.onAccept(invite));
     }
 

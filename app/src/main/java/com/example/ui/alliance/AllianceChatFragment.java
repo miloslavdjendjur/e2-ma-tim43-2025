@@ -63,7 +63,6 @@ public class AllianceChatFragment extends Fragment {
         rvChat.setLayoutManager(lm);
         rvChat.setAdapter(adapter);
 
-        // ✅ READ BOTH KEYS (fix crash)
         Bundle args = getArguments();
         if (args != null) {
             allianceId = args.getString("ALLIANCE_ID");
