@@ -199,7 +199,10 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         equipmentRepo.getUser()
                 .addOnSuccessListener(userDoc -> {
                     Long lvl = userDoc.getLong("level");
-                    bossLevel = (lvl != null) ? lvl.intValue() : bossLevel;
+                    int userLvl = (lvl != null) ? lvl.intValue() : (bossLevel + 1);
+
+                    // Boss level is ALWAYS userLevel - 1 (min 1)
+                    bossLevel = Math.max(1, userLvl - 1);
 
                     Timestamp lastLevelUp = userDoc.getTimestamp("lastLevelUpDate");
 
@@ -212,11 +215,24 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                                 bossService.calculateTaskSuccessRate(lastLevelUp)
                                         .addOnSuccessListener(rate -> {
                                             successRatePct = clamp(rate + hitBonusPct, 0.0, 100.0);
-                                            startOrResumeBoss();
+
+                                            // Ensure boss exists before we start (prevents race/empty state)
+                                            bossService.preSpawnBossIfNeeded(bossLevel)
+                                                    .addOnSuccessListener(v -> startOrResumeBoss())
+                                                    .addOnFailureListener(e -> {
+                                                        Toast.makeText(this, "Failed to pre-spawn boss", Toast.LENGTH_SHORT).show();
+                                                        finish();
+                                                    });
                                         })
                                         .addOnFailureListener(e -> {
                                             successRatePct = clamp(0.0 + hitBonusPct, 0.0, 100.0);
-                                            startOrResumeBoss();
+
+                                            bossService.preSpawnBossIfNeeded(bossLevel)
+                                                    .addOnSuccessListener(v -> startOrResumeBoss())
+                                                    .addOnFailureListener(ex -> {
+                                                        Toast.makeText(this, "Failed to pre-spawn boss", Toast.LENGTH_SHORT).show();
+                                                        finish();
+                                                    });
                                         });
                             })
                             .addOnFailureListener(e -> {
@@ -229,6 +245,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                     finish();
                 });
     }
+
 
     private void startOrResumeBoss() {
         equipmentService.repo().getUser()
@@ -243,6 +260,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
 
                     maxAttacksThisBattle = attacksForThisBattle;
 
+                    // bossLevel is already fixed to (userLevel - 1)
                     bossService.getBossForBattle(bossLevel, attacksForThisBattle)
                             .addOnSuccessListener(b -> {
                                 boss = b;
@@ -259,6 +277,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                         Toast.makeText(this, "Failed to load equipment stats", Toast.LENGTH_SHORT).show()
                 );
     }
+
 
     private void bindUi(boolean animateHp) {
         if (boss == null) return;

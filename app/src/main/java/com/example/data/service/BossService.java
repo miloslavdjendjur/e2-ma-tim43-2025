@@ -1,9 +1,8 @@
 package com.example.data.service;
 
-import com.example.data.model.boss.AttackResult;
+import com.example.data.model.Task;
 import com.example.data.model.boss.Boss;
 import com.example.data.model.boss.FightResult;
-import com.example.data.model.Task;
 import com.example.data.model.equipment.type.ClothesType;
 import com.example.data.model.equipment.type.WeaponType;
 import com.example.data.repo.BossRepository;
@@ -16,6 +15,7 @@ import com.google.firebase.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,6 +46,13 @@ public class BossService {
         return hp;
     }
 
+    /** Convenience wrapper (ako ti negde treba int). */
+    public int computeBossMaxHp(int bossLevel) {
+        long hp = calculateMaxHp(bossLevel);
+        if (hp > Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return (int) hp;
+    }
+
     public int calculateBaseCoinReward(int bossLevel) {
         if (bossLevel <= 1) return 200;
         long coins = 200;
@@ -55,39 +62,43 @@ public class BossService {
         return (coins > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) coins;
     }
 
-    // ------------------ PRE-SPAWN (ON LEVEL-UP) ------------------
+    // ------------------ PRE-SPAWN (ON LEVEL-UP / SAFE TO CALL ANYTIME) ------------------
 
     /**
-     * Creates a boss doc if missing / wrong / finished, so it exists BEFORE user clicks fight.
-     * Safe to call multiple times.
+     * Kreira boss doc ako ne postoji (ili je DEFEATED). Ako postoji boss koji NIJE DEFEATED
+     * (PENDING/ACTIVE/ESCAPED) -> NE DIRAJ GA. Tako boss ne "nestane" kad izađeš sa prep-a,
+     * odeš u chat, pa se vratiš.
      */
     public com.google.android.gms.tasks.Task<Void> preSpawnBossIfNeeded(int bossLevelToFight) {
         TaskCompletionSource<Void> tcs = new TaskCompletionSource<>();
-        final int lvl = Math.max(1, bossLevelToFight);
 
         bossRepo.getCurrentBoss()
                 .addOnSuccessListener(doc -> {
-                    Boss current = null;
-                    if (doc != null && doc.exists()) current = doc.toObject(Boss.class);
-
-                    boolean okToKeep = current != null
-                            && !current.isDefeated()
-                            && current.getLevel() == lvl
-                            && !"ESCAPED".equalsIgnoreCase(current.getStatus())
-                            && !"DEFEATED".equalsIgnoreCase(current.getStatus());
-
-                    if (okToKeep) {
-                        tcs.setResult(null);
-                        return;
+                    Boss existing = null;
+                    if (doc != null && doc.exists()) {
+                        existing = doc.toObject(Boss.class);
                     }
 
-                    long maxHp = calculateMaxHp(lvl);
-                    Boss boss = new Boss(lvl, maxHp);
-                    // attacksLeft is decided when battle starts
-                    boss.setAttacksLeft(0);
-                    boss.setStatus("ACTIVE");
+                    // Ako postoji boss i NIJE poražen -> NIKAD ga ne overwrite-uj
+                    if (existing != null) {
+                        String st = existing.getStatus();
+                        boolean defeated = "DEFEATED".equals(st) || existing.isDefeated();
 
-                    bossRepo.saveBoss(boss)
+                        if (!defeated) {
+                            tcs.setResult(null);
+                            return;
+                        }
+                    }
+
+                    // Nema bossa ili je DEFEATED -> kreiraj novog (PENDING)
+                    long maxHp = calculateMaxHp(bossLevelToFight);
+                    Boss b = new Boss(bossLevelToFight, maxHp);
+                    b.setCurrentHp(maxHp);
+                    b.setAttacksLeft(5);
+                    b.setStatus("PENDING");   // bitno: nije ACTIVE dok user ne klikne start fight
+                    b.setCreatedAt(Timestamp.now());
+
+                    bossRepo.saveBoss(b)
                             .addOnSuccessListener(v -> tcs.setResult(null))
                             .addOnFailureListener(tcs::setException);
                 })
@@ -96,9 +107,9 @@ public class BossService {
         return tcs.getTask();
     }
 
-    // ------------------ BOSS RESPWAN / START BATTLE ------------------
+    // ------------------ BOSS RESPAWN / START BATTLE ------------------
 
-    public com.google.android.gms.tasks.Task<Boss>  getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
+    public com.google.android.gms.tasks.Task<Boss> getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
         TaskCompletionSource<Boss> tcs = new TaskCompletionSource<>();
 
         bossRepo.getCurrentBoss()
@@ -107,14 +118,24 @@ public class BossService {
                     if (doc != null && doc.exists()) current = doc.toObject(Boss.class);
 
                     Boss bossToFight;
+
+                    // Ako postoji boss istog levela i nije poražen -> koristi njega
                     if (current != null && !current.isDefeated() && current.getLevel() == expectedBossLevel) {
+                        bossToFight = current;
+
+                        // Kada user stvarno ulazi u borbu -> ACTIVE
+                        bossToFight.setStatus("ACTIVE");
+                    } else if (current != null && !current.isDefeated()) {
+                        // Postoji neki "pending" boss (možda stariji) -> NE overwrite-uj ga ovde.
+                        // Ovo je safety: ako se logika negde pokvari, bolje je nastaviti isti boss
+                        // nego slučajno obrisati/spawnovati novi.
                         bossToFight = current;
                         bossToFight.setStatus("ACTIVE");
                     } else {
                         long maxHp = calculateMaxHp(expectedBossLevel);
                         bossToFight = new Boss(expectedBossLevel, maxHp);
+                        bossToFight.setStatus("ACTIVE");
                     }
-
 
                     bossToFight.setAttacksLeft(Math.max(1, attacksForThisBattle));
 
@@ -219,7 +240,7 @@ public class BossService {
                 .thenComparing(a -> a.idKey));
 
         List<Attempt> out = new ArrayList<>();
-        java.util.HashMap<String, Integer> counter = new java.util.HashMap<>();
+        HashMap<String, Integer> counter = new HashMap<>();
 
         for (Attempt a : attempts) {
             if (a.quotaKey == null) {
@@ -248,7 +269,7 @@ public class BossService {
 
     private String safe(String s) { return (s == null) ? "" : s; }
 
-    // ------------------ QUOTA (FIX: uses BASE XP tiers) ------------------
+    // ------------------ QUOTA (uses BASE XP tiers) ------------------
 
     private String quotaKeyForTask(Task t) {
         if (t == null) return null;
@@ -357,9 +378,6 @@ public class BossService {
 
     // ------------------ FIGHT ------------------
 
-    /**
-     * Backward-compatible: if UI already supplies randomValue.
-     */
     @Deprecated
     public com.google.android.gms.tasks.Task<Boolean> performAttack(Boss boss, int damage, double successRate, int randomValue) {
         TaskCompletionSource<Boolean> tcs = new TaskCompletionSource<>();
@@ -437,14 +455,7 @@ public class BossService {
                 int cRoll = random.nextInt(3);
                 ClothesType cType = (cRoll == 0) ? ClothesType.GLOVES : (cRoll == 1) ? ClothesType.SHIELD : ClothesType.BOOTS;
 
-                // Spec:
-                //  - Gloves: +10% PP
-                //  - Shield: +10% max HP
-                //  - Boots:  +40% chance for ONE extra attack in the next fight (per pair)
-                // NOTE: value is stored as a percentage. UI/Battle start logic should interpret
-                // BOOTS value as "extra attack chance %" (not a flat stat like PP/HP).
                 int value = (cType == ClothesType.BOOTS) ? 40 : 10;
-
 
                 return equipmentRepo.equipClothes(cType, value)
                         .continueWith(t -> new FightResult(victory, coinsToAdd, cType.name(), false,
@@ -465,7 +476,6 @@ public class BossService {
         if (roll < bootsChancePercent) attacks += 1;
         return attacks;
     }
-
 
     public BossRepository getRepo() { return bossRepo; }
 }
