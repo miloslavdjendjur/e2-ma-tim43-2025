@@ -100,8 +100,8 @@ public class ShopFragment extends Fragment {
         }
         else if ("WEAPON".equals(category)) {
             WeaponType wt = (WeaponType) typeEnum;
-//            if (wt == WeaponType.SWORD) return R.drawable.sword;
-//            if (wt == WeaponType.BOW) return R.drawable.bow;
+            if (wt == WeaponType.SWORD) return R.drawable.sword;
+            if (wt == WeaponType.BOW) return R.drawable.bow;
         }
         return R.drawable.ic_launcher_foreground;
     }
