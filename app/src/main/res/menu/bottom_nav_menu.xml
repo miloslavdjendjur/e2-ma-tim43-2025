@@ -4,14 +4,14 @@
         android:id="@+id/nav_tasks"
         android:title="Tasks"
         android:icon="@android:drawable/ic_menu_my_calendar"/>
-<!--    <item-->
-<!--        android:id="@+id/nav_shop"-->
-<!--        android:title="Shop"-->
-<!--        android:icon="@android:drawable/ic_menu_view"/>-->
-   <item
-        android:id="@+id/nav_equipment"
-        android:title="Inventory"
-        android:icon="@android:drawable/ic_menu_manage"/>
+    <item
+        android:id="@+id/nav_shop"
+        android:title="Shop"
+        android:icon="@android:drawable/ic_menu_view"/>
+<!--   <item-->
+<!--        android:id="@+id/nav_equipment"-->
+<!--        android:title="Inventory"-->
+<!--        android:icon="@android:drawable/ic_menu_manage"/>-->
 
     <item
         android:id="@+id/nav_friends"
