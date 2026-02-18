@@ -191,9 +191,9 @@ public class AllianceFragment extends Fragment {
         layoutNoAlliance.setVisibility(View.GONE);
         layoutHasAlliance.setVisibility(View.VISIBLE);
 
-        // dok se učita alliance + mission stanje
+        // Resetujemo stanja dok učitavamo
         isLeader = false;
-        missionActive = false;
+        missionActive = false; // Pretpostavimo da nije aktivna dok listener ne javi drugačije
         applyMissionButtons();
 
         repo.getAlliance(allianceId).addOnSuccessListener(alliance -> {
@@ -201,42 +201,55 @@ public class AllianceFragment extends Fragment {
 
             tvAllianceName.setText(alliance.name);
 
-            // Prikazi dugme za misiju samo ako sam ja vođa
-            if (alliance.leaderUid != null && alliance.leaderUid.equals(myUid)) {
-                btnStartMission.setVisibility(View.VISIBLE);
-            } else {
-                btnStartMission.setVisibility(View.GONE);
-            }
+            // Provera da li sam ja vođa
+            isLeader = alliance.leaderUid != null && alliance.leaderUid.equals(myUid);
 
-            // U loadAllianceDetails metodi:
-            if (alliance.leaderUid.equals(myUid)) {
+            if (isLeader) {
+                // --- Prikaz za VOĐU ---
                 btnStartMission.setVisibility(View.VISIBLE);
-
-                // Dodaj i dugme za ukidanje (pretpostavimo da si ga dodao u XML kao btnDisband)
                 btnDisband.setVisibility(View.VISIBLE);
-                btnDisband.setOnClickListener(v -> {
-                    // Provera misije (Student 2 deo - ovde samo placeholder)
-                    // if (missionActive) { Toast... "Ne može dok traje misija" return; }
 
-                    repo.disbandAlliance(alliance.id).addOnSuccessListener(x -> {
-                        checkUserStatus(); // Osveži UI, vratiće te na "Nemaš savez"
-                    });
+                // Logika za dugme UKINI SAVEZ
+                btnDisband.setOnClickListener(v -> {
+                    // 1. Sigurnosna provera: Ne može se ukinuti ako traje misija
+                    if (missionActive) {
+                        Toast.makeText(getContext(), "Ne možete ukinuti savez dok traje specijalna misija!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // 2. Onemogući dugme da se ne klikne dvaput
+                    btnDisband.setEnabled(false);
+
+                    // 3. Poziv repozitorijuma
+                    repo.disbandAlliance(allianceId)
+                            .addOnSuccessListener(x -> {
+                                Toast.makeText(getContext(), "Savez je uspešno ukinut.", Toast.LENGTH_SHORT).show();
+                                // Ovo će osvežiti status korisnika i vratiti ga na ekran "Nemaš savez"
+                                checkUserStatus();
+                            })
+                            .addOnFailureListener(e -> {
+                                btnDisband.setEnabled(true); // Vrati dugme ako pukne
+                                Toast.makeText(getContext(), "Greška pri brisanju: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            });
                 });
+
             } else {
+                // --- Prikaz za ČLANA ---
+                btnStartMission.setVisibility(View.GONE);
                 btnDisband.setVisibility(View.GONE);
             }
 
+            // Učitaj podatke o članovima za listu
             fetchMembersData(alliance.members);
 
-            // leader-only
-            isLeader = alliance.leaderUid != null && alliance.leaderUid.equals(myUid);
+            // Ažuriraj dugmad za misiju (Start/View) na osnovu toga da li sam vođa i da li misija traje
             applyMissionButtons();
 
-            // live listener za special mission state
+            // Zakači listener da pratiš stanje misije uživo
             attachMissionListener(allianceId);
 
         }).addOnFailureListener(e ->
-                Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show()
+                Toast.makeText(getContext(), "Greška pri učitavanju saveza: " + e.getMessage(), Toast.LENGTH_SHORT).show()
         );
     }
 
