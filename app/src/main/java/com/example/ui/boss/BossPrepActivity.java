@@ -22,6 +22,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.example.myapplication.MainActivity;
 
 import java.util.Locale;
 
@@ -42,7 +43,7 @@ public class BossPrepActivity extends AppCompatActivity {
     // We reuse tvNote for potion effects / tips
     private TextView tvNote, tvRewards;
 
-    private Button btnMyEquipment, btnStore, btnStartFight;
+    private Button btnStore, btnStartFight, btnMyEquipment;
     private final com.example.data.service.BossService bossService = new com.example.data.service.BossService();
 
     private int userLevel = 1;
@@ -76,8 +77,26 @@ public class BossPrepActivity extends AppCompatActivity {
         btnStore = findViewById(R.id.btnStore);
         btnStartFight = findViewById(R.id.btnStartFight);
 
-        btnMyEquipment.setOnClickListener(v -> startActivity(new Intent(this, MyEquipmentActivity.class)));
-        btnStore.setOnClickListener(v -> startActivity(new Intent(this, EquipmentStoreActivity.class)));
+        btnMyEquipment.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            intent.putExtra("NAVIGATE_TO", "shopFragment");
+            intent.putExtra("TAB_INDEX", 1);
+            intent.putExtra("IS_FROM_BOSS_PREP", true);
+
+            startActivity(intent);
+        });
+        btnStore.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            intent.putExtra("NAVIGATE_TO", "shopFragment");
+            intent.putExtra("TAB_INDEX", 0);
+            intent.putExtra("IS_FROM_BOSS_PREP", true);
+
+            startActivity(intent);
+        });
         btnStartFight.setOnClickListener(v -> startFight());
 
         setEnabled(false);

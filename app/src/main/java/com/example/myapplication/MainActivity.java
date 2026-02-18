@@ -59,10 +59,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleIntent(Intent intent) {
-        if (intent != null && "profile".equals(intent.getStringExtra("openTab"))) {
+        if (intent == null) return;
+
+        if ("profile".equals(intent.getStringExtra("openTab"))) {
             if (bottomNav != null) {
-                // Označava profil u donjoj navigaciji, što menja fragment
                 bottomNav.setSelectedItemId(R.id.nav_profile);
+            }
+        }
+
+        if ("shopFragment".equals(intent.getStringExtra("NAVIGATE_TO"))) {
+            int tabIndex = intent.getIntExtra("TAB_INDEX", 0);
+
+            boolean isFromBossPrep = intent.getBooleanExtra("IS_FROM_BOSS_PREP", false);
+
+            intent.removeExtra("NAVIGATE_TO");
+
+            Bundle args = new Bundle();
+            args.putInt("tab_index", tabIndex);
+
+            args.putBoolean("is_from_boss_prep", isFromBossPrep);
+
+            androidx.navigation.Navigation.findNavController(this, R.id.nav_host_fragment)
+                    .navigate(R.id.nav_shop, args);
+
+            if (bottomNav != null) {
+                bottomNav.getMenu().findItem(R.id.nav_shop).setChecked(true);
             }
         }
     }

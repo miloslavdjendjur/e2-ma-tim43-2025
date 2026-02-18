@@ -1,7 +1,9 @@
 package com.example.ui.shop;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +22,7 @@ import com.example.data.service.EquipmentService;
 import com.example.myapplication.R;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.example.ui.boss.BossPrepActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,8 @@ public class ShopFragment extends Fragment {
     private ShopAdapter adapter;
     private TextView tvCoinsDisplay;
     private TabLayout tabLayout;
+
+    private Button btnBackToBoss;
 
     private final EquipmentActionsService actions = new EquipmentActionsService();
     private final EquipmentRepository repo = new EquipmentRepository();
@@ -48,11 +53,35 @@ public class ShopFragment extends Fragment {
         tvCoinsDisplay = view.findViewById(R.id.tvCoinsDisplay);
         tabLayout = view.findViewById(R.id.tabLayout);
 
+        btnBackToBoss = view.findViewById(R.id.btnBackToBoss);
+
         rvShop.setLayoutManager(new GridLayoutManager(getContext(), 2));
         adapter = new ShopAdapter(new ArrayList<>(), this::handleItemClick);
         rvShop.setAdapter(adapter);
 
-        loadUserDataAndRefresh(0);
+        int startTab = 0;
+        boolean isFromBossPrep = false;
+        if (getArguments() != null) {
+            startTab = getArguments().getInt("tab_index", 0);
+            isFromBossPrep = getArguments().getBoolean("is_from_boss_prep", false);
+        }
+
+        if (isFromBossPrep) {
+            btnBackToBoss.setVisibility(View.VISIBLE);
+            btnBackToBoss.setOnClickListener(v -> {
+                Intent intent = new Intent(getContext(), BossPrepActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+            });
+        } else {
+            btnBackToBoss.setVisibility(View.GONE);
+        }
+
+        TabLayout.Tab tab = tabLayout.getTabAt(startTab);
+        if (tab != null) tab.select();
+
+
+        loadUserDataAndRefresh(startTab);
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -158,12 +187,15 @@ public class ShopFragment extends Fragment {
             for (QueryDocumentSnapshot doc : potions) {
                 String typeStr = doc.getString("type");
                 int count = doc.getLong("count") != null ? doc.getLong("count").intValue() : 0;
+                boolean isPending = Boolean.TRUE.equals(doc.getBoolean("pendingUse"));
+
                 try {
                     PotionType pt = PotionType.valueOf(typeStr);
                     String desc = pt.name().contains("PERM") ? "Trajni bonus" : "Za sledeću borbu";
-                    if (count > 0) {
+
+                    if (count > 0 || isPending) {
                         list.add(ShopItem.createForInventory(formatPotionName(pt), desc, count, pt, "POTION",
-                                getIconForType("POTION", pt)));
+                                getIconForType("POTION", pt), isPending));
                     }
                 } catch (Exception e) {}
             }
@@ -172,11 +204,13 @@ public class ShopFragment extends Fragment {
                 for (QueryDocumentSnapshot doc : clothes) {
                     String typeStr = doc.getString("type");
                     int count = doc.getLong("count") != null ? doc.getLong("count").intValue() : 0;
+                    boolean active = Boolean.TRUE.equals(doc.getBoolean("active"));
+
                     try {
                         ClothesType ct = ClothesType.valueOf(typeStr);
-                        if (count > 0) {
-                            list.add(ShopItem.createForInventory(formatClothesName(ct), "Traje 2 borbe kad se aktivira", count, ct, "CLOTHES",
-                                    getIconForType("CLOTHES", ct)));
+                        if (count > 0 || active) {
+                            list.add(ShopItem.createForInventory(formatClothesName(ct), "Traje 2 borbe", count, ct, "CLOTHES",
+                                    getIconForType("CLOTHES", ct), active));
                         }
                     } catch (Exception e) {}
                 }
@@ -189,7 +223,7 @@ public class ShopFragment extends Fragment {
                             String name = typeStr.equals("SWORD") ? "Mač" : "Luk i Strela";
                             WeaponType wt = typeStr.equals("SWORD") ? WeaponType.SWORD : WeaponType.BOW;
                             list.add(ShopItem.createForInventory(name, "Level: " + level, 1, null, "WEAPON",
-                                    getIconForType("WEAPON", wt)));
+                                    getIconForType("WEAPON", wt), false));
                         }
                     }
                     adapter.updateList(list);

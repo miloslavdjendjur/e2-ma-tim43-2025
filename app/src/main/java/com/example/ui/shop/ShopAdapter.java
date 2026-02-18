@@ -9,6 +9,8 @@ import android.widget.ImageView; // <--- OVO JE FALILO
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.data.model.equipment.type.PotionType;
 import com.example.myapplication.R;
 import java.util.List;
 
@@ -44,7 +46,6 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ViewHolder> {
 
         holder.tvTitle.setText(item.title);
         holder.tvDesc.setText(item.description);
-
         holder.ivIcon.setImageResource(item.imageResId);
 
         if (item.isShopItem) {
@@ -52,7 +53,7 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ViewHolder> {
             holder.btnAction.setText("Kupi");
             holder.btnAction.setEnabled(true);
             holder.btnAction.setAlpha(1.0f);
-            holder.btnAction.setBackgroundColor(Color.parseColor("#4CAF50")); // Zeleno
+            holder.btnAction.setBackgroundColor(Color.parseColor("#4CAF50"));
         } else {
             holder.tvInfo.setText("Poseduješ: " + item.count);
 
@@ -62,15 +63,28 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ViewHolder> {
                 holder.btnAction.setAlpha(0.6f);
                 holder.btnAction.setBackgroundColor(Color.GRAY);
             } else {
-                holder.btnAction.setText("Aktiviraj");
-                if (item.count > 0) {
-                    holder.btnAction.setEnabled(true);
-                    holder.btnAction.setAlpha(1.0f);
-                    holder.btnAction.setBackgroundColor(Color.parseColor("#2196F3")); // Plavo
-                } else {
+                boolean isOneShotPotion = false;
+                if ("POTION".equals(item.typeCategory)) {
+                    PotionType pt = (PotionType) item.typeEnum;
+                    isOneShotPotion = (pt == PotionType.ONE_SHOT_PP20 || pt == PotionType.ONE_SHOT_PP40);
+                }
+
+                if (isOneShotPotion && item.isActive) {
+                    holder.btnAction.setText("Spremno");
                     holder.btnAction.setEnabled(false);
-                    holder.btnAction.setAlpha(0.5f);
+                    holder.btnAction.setAlpha(0.6f);
                     holder.btnAction.setBackgroundColor(Color.GRAY);
+                } else {
+                    holder.btnAction.setText("Aktiviraj");
+                    if (item.count > 0) {
+                        holder.btnAction.setEnabled(true);
+                        holder.btnAction.setAlpha(1.0f);
+                        holder.btnAction.setBackgroundColor(Color.parseColor("#2196F3"));
+                    } else {
+                        holder.btnAction.setEnabled(false);
+                        holder.btnAction.setAlpha(0.5f);
+                        holder.btnAction.setBackgroundColor(Color.GRAY);
+                    }
                 }
             }
         }
