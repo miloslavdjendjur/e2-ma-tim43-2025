@@ -29,7 +29,13 @@ public final class LevelingService {
     }
 
     public static boolean addXp(User user, int xpGained) {
+        return addXp(user, xpGained, null);
+    }
+
+    public static boolean addXp(User user, int xpGained, BossService bossService) {
         if (user == null) return false;
+
+        int prevLevel = user.level;
 
         user.xp += xpGained;
         int currentThreshold = getThresholdForLevel(user.level);
@@ -43,6 +49,11 @@ public final class LevelingService {
             user.title = TitleBook.titleFor(user.level);
             currentThreshold = nextXpThreshold(currentThreshold);
             leveledUp = true;
+        }
+
+        if (bossService != null && user.level > prevLevel) {
+            int bossLevelToSpawn = Math.max(1, user.level - 1);
+            bossService.preSpawnBossIfNeeded(bossLevelToSpawn);
         }
 
         return leveledUp;

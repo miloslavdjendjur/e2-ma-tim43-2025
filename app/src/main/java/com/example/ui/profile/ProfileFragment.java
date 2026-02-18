@@ -76,6 +76,7 @@ public class ProfileFragment extends Fragment {
 
         btnLogout.setOnClickListener(v -> doLogout());
         btnBossFight.setOnClickListener(v -> startActivity(new Intent(requireContext(), BossPrepActivity.class)));
+        btnChangePass.setOnClickListener(v -> changePss());
 
         load();
     }
@@ -130,15 +131,21 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setupBossButton(User user) {
-        if (user.level < 2) {
+        // Boss dugme otključaj tek od level 3 (kako si ti želeo ranije)
+        if (user == null || user.level < 3) {
             btnBossFight.setVisibility(View.GONE);
             return;
         }
+
+        // Ako user level 3 -> očekujemo boss level 2 (lvl-1)
+        final int expectedBossLevel = Math.max(1, user.level - 1);
 
         bossRepo.getCurrentBoss()
                 .addOnSuccessListener(bossDoc -> {
                     if (!isAdded()) return;
 
+                    // Ako boss ne postoji u bazi, po tvom requestu možemo da ga kreiramo još na level-up,
+                    // ali ako se desi da ne postoji - dugme neka bude vidljivo (ili ovde možeš spawn).
                     if (bossDoc == null || !bossDoc.exists()) {
                         btnBossFight.setVisibility(View.VISIBLE);
                         return;
@@ -158,20 +165,32 @@ public class ProfileFragment extends Fragment {
                                     || "DEFEATED".equalsIgnoreCase(status)
                                     || "ESCAPED".equalsIgnoreCase(status);
 
-                    boolean sameLevel = currentBoss.getLevel() == user.level;
+                    // KLJUČ: boss level mora da bude user.level - 1
+                    boolean sameLevel = currentBoss.getLevel() == expectedBossLevel;
+
+                    // KLJUČ: može da se bori kad NIJE finished
                     boolean canFight = sameLevel && !finished;
 
                     btnBossFight.setVisibility(canFight ? View.VISIBLE : View.GONE);
                 })
                 .addOnFailureListener(e -> {
-                    if (isAdded()) btnBossFight.setVisibility(View.GONE);
+                    if (!isAdded()) return;
+
+                    // Ako failuje čitanje bossa (rules / path), NE ubijaj dugme
+                    // (da ne ostane misteriozno GONE)
+                    btnBossFight.setVisibility(View.VISIBLE);
                 });
     }
+
 
     private void doLogout() {
         FirebaseAuth.getInstance().signOut();
         Intent i = new Intent(requireContext(), LoginActivity.class);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(i);
+    }
+
+    private void changePss(){
+
     }
 }

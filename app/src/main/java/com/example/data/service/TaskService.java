@@ -227,7 +227,7 @@ public class TaskService {
                     user.uid = uid;
                 }
 
-                boolean leveledUp = LevelingService.addXp(user, xpPotential);
+                boolean leveledUp = LevelingService.addXp(user, xpPotential, new BossService());
 
                 transaction.set(userDoc, user);
                 transaction.update(tasksRef.document(taskId), taskUpdates);
