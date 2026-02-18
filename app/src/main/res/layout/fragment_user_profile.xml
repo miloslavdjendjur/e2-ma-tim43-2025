@@ -79,19 +79,13 @@
             android:text="XP: 0 / 100"/>
 
         <ProgressBar
-            android:id="@+id/progressXp"
+            android:id="@+id/progressOtherXp"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="8dp"
+            android:layout_height="12dp"
             android:layout_marginTop="8dp"
-            android:max="100" />
-
-        <TextView
-            android:id="@+id/tvOtherBadges"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="Badges: 0" />
+            android:max="100"
+            android:progressDrawable="@drawable/progress_hp"/>
 
         <Button
             android:id="@+id/btnInviteToAlliance"
@@ -101,6 +95,21 @@
             android:backgroundTint="#2196F3"
             android:text="Pozovi u savez"
             android:visibility="gone"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Oprema korisnika"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvOtherEquipment"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"/>
 
     </LinearLayout>
 </ScrollView>
