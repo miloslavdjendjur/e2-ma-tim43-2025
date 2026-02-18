@@ -55,6 +55,47 @@ public class BossService {
         return (coins > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) coins;
     }
 
+    // ------------------ PRE-SPAWN (ON LEVEL-UP) ------------------
+
+    /**
+     * Creates a boss doc if missing / wrong / finished, so it exists BEFORE user clicks fight.
+     * Safe to call multiple times.
+     */
+    public com.google.android.gms.tasks.Task<Void> preSpawnBossIfNeeded(int bossLevelToFight) {
+        TaskCompletionSource<Void> tcs = new TaskCompletionSource<>();
+        final int lvl = Math.max(1, bossLevelToFight);
+
+        bossRepo.getCurrentBoss()
+                .addOnSuccessListener(doc -> {
+                    Boss current = null;
+                    if (doc != null && doc.exists()) current = doc.toObject(Boss.class);
+
+                    boolean okToKeep = current != null
+                            && !current.isDefeated()
+                            && current.getLevel() == lvl
+                            && !"ESCAPED".equalsIgnoreCase(current.getStatus())
+                            && !"DEFEATED".equalsIgnoreCase(current.getStatus());
+
+                    if (okToKeep) {
+                        tcs.setResult(null);
+                        return;
+                    }
+
+                    long maxHp = calculateMaxHp(lvl);
+                    Boss boss = new Boss(lvl, maxHp);
+                    // attacksLeft is decided when battle starts
+                    boss.setAttacksLeft(0);
+                    boss.setStatus("ACTIVE");
+
+                    bossRepo.saveBoss(boss)
+                            .addOnSuccessListener(v -> tcs.setResult(null))
+                            .addOnFailureListener(tcs::setException);
+                })
+                .addOnFailureListener(tcs::setException);
+
+        return tcs.getTask();
+    }
+
     // ------------------ BOSS RESPWAN / START BATTLE ------------------
 
     public com.google.android.gms.tasks.Task<Boss>  getBossForBattle(int expectedBossLevel, int attacksForThisBattle) {
