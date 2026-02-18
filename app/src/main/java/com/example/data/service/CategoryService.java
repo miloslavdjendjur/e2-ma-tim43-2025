@@ -36,7 +36,7 @@ public class CategoryService {
                 listener.onError("Kategorija sa ovom bojom već postoji!");
             } else {
                 // 3. Ako je sve ok, kreiraj objekat i zovi repo
-                Category newCategory = new Category(null, name.trim(), colorHex.trim());
+                Category newCategory = new Category(null, null, name.trim(), colorHex.trim());
                 repository.addCategory(newCategory, listener);
             }
         });

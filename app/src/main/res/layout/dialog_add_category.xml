@@ -17,18 +17,43 @@
         android:id="@+id/etCategoryName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Name (e.g. Health, School)" />
+        android:hint="Name (e.g. Health, School)"
+        android:inputType="textCapSentences" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Enter HEX color (e.g. #FF5733):"
-        android:layout_marginTop="16dp" />
+        android:text="Color:"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp" />
 
-    <EditText
-        android:id="@+id/etCategoryColor"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="#RRGGBB" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <View
+            android:id="@+id/viewColorPreview"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="#84dcc6"
+            android:layout_marginEnd="12dp" />
+
+        <EditText
+            android:id="@+id/etCategoryColor"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="#RRGGBB"
+            android:inputType="textNoSuggestions" />
+
+        <Button
+            android:id="@+id/btnPickColor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pick"
+            android:layout_marginStart="12dp" />
+    </LinearLayout>
 
 </LinearLayout>

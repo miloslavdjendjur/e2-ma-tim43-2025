@@ -1,8 +1,10 @@
 package com.example.ui.category;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -17,10 +19,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.myapplication.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import yuku.ambilwarna.AmbilWarnaDialog;
+
 public class CategoryFragment extends Fragment {
 
     private CategoryViewModel viewModel;
     private CategoryAdapter adapter;
+
+    // default (tvoj theme vibe)
+    private String selectedColorHex = "#84dcc6";
 
     public CategoryFragment() {
         super(R.layout.fragment_categories);
@@ -34,15 +41,12 @@ public class CategoryFragment extends Fragment {
         FloatingActionButton fab = view.findViewById(R.id.fabAddCategory);
 
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-
         adapter = new CategoryAdapter(category -> viewModel.deleteCategory(category.getId()));
         rv.setAdapter(adapter);
 
         viewModel = new ViewModelProvider(this).get(CategoryViewModel.class);
 
-        viewModel.getCategories().observe(getViewLifecycleOwner(), categories -> {
-            adapter.setCategories(categories);
-        });
+        viewModel.getCategories().observe(getViewLifecycleOwner(), adapter::setCategories);
 
         viewModel.getStatusMessage().observe(getViewLifecycleOwner(), msg -> {
             if (msg != null && !msg.isEmpty()) {
@@ -51,31 +55,89 @@ public class CategoryFragment extends Fragment {
         });
 
         viewModel.fetchCategories();
-
         fab.setOnClickListener(v -> showAddCategoryDialog());
     }
 
     private void showAddCategoryDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_category, null);
+        View dialogView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_add_category, null);
 
         EditText etName = dialogView.findViewById(R.id.etCategoryName);
         EditText etColor = dialogView.findViewById(R.id.etCategoryColor);
+        View preview = dialogView.findViewById(R.id.viewColorPreview);
+        Button btnPick = dialogView.findViewById(R.id.btnPickColor);
 
-        builder.setView(dialogView)
+        // init
+        etColor.setText(selectedColorHex);
+        try {
+            preview.setBackgroundColor(Color.parseColor(selectedColorHex));
+        } catch (Exception ignored) {}
+
+        btnPick.setOnClickListener(v -> openColorPicker(etColor, preview));
+        preview.setOnClickListener(v -> openColorPicker(etColor, preview));
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Nova Kategorija")
-                .setPositiveButton("Dodaj", (dialog, which) -> {
-                    String name = etName.getText().toString().trim();
-                    String color = etColor.getText().toString().trim();
+                .setView(dialogView)
+                .setNegativeButton("Odustani", (d, w) -> d.dismiss())
+                // stavljamo dummy, pa override da dialog ne nestane na invalid input
+                .setPositiveButton("Dodaj", null)
+                .create();
 
-                    if (!name.isEmpty() && color.startsWith("#")) {
-                        viewModel.addNewCategory(name, color);
-                    } else {
-                        Toast.makeText(requireContext(), "Unesite ispravne podatke!", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Odustani", null)
-                .create()
-                .show();
+        dialog.setOnShowListener(dlg -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String name = etName.getText().toString().trim();
+                String color = etColor.getText().toString().trim();
+
+                if (name.isEmpty()) {
+                    Toast.makeText(requireContext(), "Naziv ne sme biti prazan.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // normalizuj: ako user ukuca bez #
+                if (!color.startsWith("#")) color = "#" + color;
+
+                // basic validacija HEX formata
+                if (!isValidHexColor(color)) {
+                    Toast.makeText(requireContext(), "Neispravan HEX (npr. #FF5733).", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                selectedColorHex = color;
+                viewModel.addNewCategory(name, color);
+                dialog.dismiss();
+            });
+        });
+
+        dialog.show();
+    }
+
+    private void openColorPicker(EditText etColor, View preview) {
+        int initialColor;
+        try {
+            initialColor = Color.parseColor(selectedColorHex);
+        } catch (Exception e) {
+            initialColor = Color.parseColor("#84dcc6");
+        }
+
+        new AmbilWarnaDialog(requireContext(), initialColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
+            @Override
+            public void onOk(AmbilWarnaDialog dialog, int color) {
+                selectedColorHex = String.format("#%06X", (0xFFFFFF & color));
+                etColor.setText(selectedColorHex);
+                preview.setBackgroundColor(color);
+            }
+
+            @Override
+            public void onCancel(AmbilWarnaDialog dialog) {
+                // no-op
+            }
+        }).show();
+    }
+
+    private boolean isValidHexColor(String color) {
+        if (color == null) return false;
+        // #RGB ili #RRGGBB
+        return color.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
     }
 }
