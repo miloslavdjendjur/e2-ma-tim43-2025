@@ -97,5 +97,15 @@
         android:label="My Statistics"
         tools:layout="@layout/fragment_statistics" />
 
+    <fragment
+        android:id="@+id/userProfileFragment"
+        android:name="com.example.ui.profile.UserProfileFragment"
+        android:label="Profil Korisnika"
+        tools:layout="@layout/fragment_user_profile">
+        <argument
+            android:name="TARGET_UID"
+            app:argType="string" />
+    </fragment>
+
 
 </navigation>

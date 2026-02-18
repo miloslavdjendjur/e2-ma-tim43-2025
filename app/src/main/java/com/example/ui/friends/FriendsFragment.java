@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -113,16 +114,15 @@ public class FriendsFragment extends Fragment {
     }
 
     private void onFriendClick(User friend) {
-        repo.getCurrentUser().addOnSuccessListener(snap -> {
-            User me = snap.toObject(User.class);
-            if (me == null) return;
+        Bundle bundle = new Bundle();
+        bundle.putString("TARGET_UID", friend.uid);
 
-            if (me.allianceId == null || me.allianceId.isEmpty()) {
-                Toast.makeText(getContext(), "Moraš prvo kreirati savez da bi pozivao ljude!", Toast.LENGTH_LONG).show();
-            } else {
-                showInviteDialog(friend, me.allianceId);
-            }
-        });
+        try {
+            Navigation.findNavController(requireView())
+                    .navigate(R.id.userProfileFragment, bundle);
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Navigacija nije konfigurisana", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showInviteDialog(User friend, String myAllianceId) {

@@ -66,11 +66,7 @@ public class ProfileFragment extends Fragment {
         Button btnStatistics = view.findViewById(R.id.btnStatistics);
 
         btnStatistics.setOnClickListener(v -> {
-            // Navigacija ka StatisticsFragment-u
-            // Proveri ID akcije u mobile_navigation.xml, npr:
-            // Navigation.findNavController(v).navigate(R.id.action_profileFragment_to_statisticsFragment);
 
-            // ILI ako nemaš akciju, može direktno preko ID-a fragmenta:
             Navigation.findNavController(v).navigate(R.id.statisticsFragment);
         });
 
@@ -190,7 +186,8 @@ public class ProfileFragment extends Fragment {
         startActivity(i);
     }
 
-    private void changePss(){
-
+    private void changePss() {
+        Intent intent = new Intent(requireContext(), ChangePasswordActivity.class);
+        startActivity(intent);
     }
 }
