@@ -130,7 +130,7 @@ Podaci o savezima i komunikaciji čuvaju se u Firestore bazi.
 
 ## ⚙️ Tehnologije
 
-Tehnologije korišćene u projektu (verifikovano iz `build.gradle`):
+Tehnologije korišćene u projektu:
 
 - **Platforma:** Android (minSdk 30, targetSdk 36)
 - **Programski jezik:** Java 11
